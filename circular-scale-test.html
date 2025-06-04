@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Circular Scale Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        .controls button, .controls select {
+            margin: 5px;
+            padding: 8px 12px;
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .controls button:hover, .controls select:hover {
+            background: #444;
+        }
+        .info {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Circular Scale Component Test</h1>
+    
+    <div class="controls">
+        <label>Scale: 
+            <select id="scaleSelect">
+                <option value="pentatonic">Pentatonic</option>
+                <option value="major">Major</option>
+                <option value="natural-minor">Natural Minor</option>
+                <option value="harmonic-minor">Harmonic Minor</option>
+                <option value="melodic-minor">Melodic Minor</option>
+                <option value="diminished">Diminished</option>
+                <option value="bhairav">Bhairav</option>
+                <option value="bhairavi">Bhairavi</option>
+                <option value="yaman">Yaman</option>
+                <option value="kafi">Kafi</option>
+                <option value="asavari">Asavari</option>
+                <option value="todi">Todi</option>
+                <option value="purvi">Purvi</option>
+                <option value="marwa">Marwa</option>
+                <option value="khamaj">Khamaj</option>
+                <option value="kalyan">Kalyan</option>
+                <option value="chromatic">Chromatic</option>
+            </select>
+        </label>
+        
+        <label>Tonic: 
+            <select id="tonicSelect">
+                <option value="48">C3</option>
+                <option value="49">C#3</option>
+                <option value="50">D3</option>
+                <option value="51">D#3</option>
+                <option value="52">E3</option>
+                <option value="53">F3</option>
+                <option value="54">F#3</option>
+                <option value="55">G3</option>
+                <option value="56">G#3</option>
+                <option value="57">A3</option>
+                <option value="58">A#3</option>
+                <option value="59">B3</option>
+                <option value="60" selected>C4</option>
+                <option value="61">C#4</option>
+                <option value="62">D4</option>
+                <option value="63">D#4</option>
+                <option value="64">E4</option>
+                <option value="65">F4</option>
+                <option value="66">F#4</option>
+                <option value="67">G4</option>
+                <option value="68">G#4</option>
+                <option value="69">A4</option>
+                <option value="70">A#4</option>
+                <option value="71">B4</option>
+                <option value="72">C5</option>
+            </select>
+        </label>
+        
+        <button onclick="simulateMidiXY()">Simulate MIDI XY</button>
+    </div>
+    
+    <div class="info">
+        <h3>Instructions</h3>
+        <ul>
+            <li>Move mouse over the circular scale to highlight segments</li>
+            <li>Change scale and tonic with dropdowns</li>
+            <li>Click "Simulate MIDI XY" to see automated movement</li>
+            <li>The scale responds to XY coordinates like MIDI CC1/CC2</li>
+        </ul>
+        
+        <div id="status">
+            <h4>Status</h4>
+            <div id="statusText">Ready</div>
+        </div>
+    </div>
+
+    <!-- p5.js libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    
+    <!-- Circular Scale Component -->
+    <script src="circularScale.js"></script>
+
+    <script>
+        let circularScale;
+        let simulationActive = false;
+        let simulationTime = 0;
+        
+        function setup() {
+            createCanvas(800, 600);
+            
+            // Create circular scale in center
+            circularScale = new CircularScale(250, 150, 300);
+            
+            // Setup UI event handlers
+            document.getElementById('scaleSelect').addEventListener('change', (e) => {
+                circularScale.updateScale(e.target.value, circularScale.currentTonic);
+                updateStatus();
+            });
+            
+            document.getElementById('tonicSelect').addEventListener('change', (e) => {
+                circularScale.updateScale(circularScale.currentScaleType, parseInt(e.target.value));
+                updateStatus();
+            });
+            
+            updateStatus();
+        }
+        
+        function draw() {
+            background(30);
+            
+            // Handle mouse interaction
+            circularScale.handleMouseMove(mouseX, mouseY);
+            
+            // Handle simulation
+            if (simulationActive) {
+                simulationTime += 0.02;
+                const x = Math.sin(simulationTime) * 0.5 + 0.5; // 0-1
+                const y = Math.cos(simulationTime * 0.7) * 0.5 + 0.5; // 0-1
+                const midiX = Math.floor(x * 127);
+                const midiY = Math.floor(y * 127);
+                circularScale.handleMidiXY(midiX, midiY);
+            }
+            
+            // Draw the circular scale
+            circularScale.draw();
+            
+            // Draw additional info
+            drawInfo();
+        }
+        
+        function drawInfo() {
+            push();
+            fill(255);
+            textAlign(LEFT, TOP);
+            textSize(14);
+            
+            const status = circularScale.getStatus();
+            const y = 50;
+            text(`Scale: ${status.scaleType} | Tonic: ${status.tonic} | Length: ${status.scaleLength}`, 20, y);
+            text(`MIDI X: ${status.midiX} | MIDI Y: ${status.midiY}`, 20, y + 20);
+            text(`Active Segment: ${status.activeSegment}`, 20, y + 40);
+            
+            if (status.activeNote) {
+                text(`Active Note: ${status.activeNote.noteName}${status.activeNote.octave} (MIDI ${status.activeNote.midiNote})`, 20, y + 60);
+            }
+            
+            if (simulationActive) {
+                fill(0, 255, 0);
+                text("SIMULATION ACTIVE", 20, y + 100);
+            }
+            
+            pop();
+        }
+        
+        function simulateMidiXY() {
+            simulationActive = !simulationActive;
+            document.querySelector('button').textContent = simulationActive ? 'Stop Simulation' : 'Simulate MIDI XY';
+        }
+        
+        function updateStatus() {
+            const status = circularScale.getStatus();
+            document.getElementById('statusText').innerHTML = `
+                Scale: ${status.scaleType}<br>
+                Tonic: ${status.tonic}<br>
+                Notes: ${status.scaleLength}<br>
+                Active: ${status.activeSegment >= 0 ? status.activeNote?.noteName : 'None'}
+            `;
+        }
+        
+        function keyPressed() {
+            if (key === ' ') {
+                simulateMidiXY();
+            }
+        }
+    </script>
+</body>
+</html> 

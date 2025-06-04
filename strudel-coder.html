@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strudel MIDI Coder</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            font-family: 'Arial', sans-serif;
+            overflow-x: hidden;
+        }
+        
+        canvas {
+            display: block;
+        }
+        
+        .instructions {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            max-width: 300px;
+            line-height: 1.4;
+            z-index: 1000;
+        }
+        
+        .instructions h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+        
+        .instructions ul {
+            margin: 0;
+            padding-left: 15px;
+        }
+        
+        button {
+            font-family: inherit;
+            font-size: 14px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            margin: 2px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button:active {
+            background-color: #3d8b40;
+        }
+    </style>
+</head>
+<body>
+    <!-- Instructions panel -->
+    <div class="instructions">
+        <h3>Strudel MIDI Coder</h3>
+        <p>Converts MIDI input to Strudel music notation</p>
+        <ul>
+            <li><strong>Play MIDI:</strong> Notes are captured automatically</li>
+            <li><strong>Copy Musical:</strong> Get note names (c4, d4, etc.)</li>
+            <li><strong>Copy Integer:</strong> Get MIDI numbers (60, 62, etc.)</li>
+            <li><strong>Clear Notes:</strong> Reset the sequence</li>
+            <li><strong>Spacebar:</strong> Clear notes</li>
+            <li><strong>Ctrl+C:</strong> Copy musical notation</li>
+            <li><strong>Ctrl+Space:</strong> Copy integer notation</li>
+        </ul>
+    </div>
+
+    <!-- p5.js libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    
+    <!-- Strudel Coder application -->
+    <script src="strudel_coder.js"></script>
+
+    <script>
+        // Error handling
+        window.addEventListener('error', (e) => {
+            console.error('Strudel Coder error:', e.error);
+            
+            // Create error display
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background-color: rgba(255, 68, 68, 0.9);
+                color: white;
+                padding: 20px;
+                border-radius: 10px;
+                text-align: center;
+                z-index: 2000;
+                font-family: Arial, sans-serif;
+            `;
+            errorDiv.innerHTML = `
+                <h2>Error Loading Strudel Coder</h2>
+                <p>Please check the console for details.</p>
+                <p>Make sure your MIDI device is connected and browser supports Web MIDI API.</p>
+                <button onclick="location.reload()" style="
+                    background: white;
+                    color: #ff4444;
+                    border: none;
+                    padding: 10px 20px;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    margin-top: 10px;
+                ">Reload Page</button>
+            `;
+            document.body.appendChild(errorDiv);
+        });
+        
+        // Additional setup after page loads
+        window.addEventListener('load', () => {
+            console.log('Strudel Coder loaded successfully');
+            console.log('Connect a MIDI device and start playing to capture notes!');
+        });
+    </script>
+</body>
+</html> 

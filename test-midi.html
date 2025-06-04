@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI Device Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: white;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .device {
+            background-color: #2a2a2a;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+        .message {
+            background-color: #333;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .error {
+            color: #ff6b6b;
+        }
+        .success {
+            color: #51cf66;
+        }
+        .info {
+            color: #74c0fc;
+        }
+        h1, h2 {
+            color: #4CAF50;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .status.connected {
+            background-color: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4CAF50;
+        }
+        .status.error {
+            background-color: rgba(255, 107, 107, 0.2);
+            border: 1px solid #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <h1>MIDI Device Test</h1>
+    
+    <div id="status" class="status">
+        <strong>Status:</strong> <span id="statusText">Initializing...</span>
+    </div>
+    
+    <h2>Connected MIDI Devices</h2>
+    <div id="devices">
+        <p>Scanning for devices...</p>
+    </div>
+    
+    <h2>MIDI Messages</h2>
+    <div id="messages">
+        <p>Waiting for MIDI input...</p>
+    </div>
+    
+    <h2>Quick Links</h2>
+    <p>
+        <a href="index.html" style="color: #4CAF50;">Main Musical Interface</a> |
+        <a href="strudel-coder.html" style="color: #4CAF50;">Strudel Coder</a>
+    </p>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+        const statusText = document.getElementById('statusText');
+        const devicesDiv = document.getElementById('devices');
+        const messagesDiv = document.getElementById('messages');
+        
+        let messageCount = 0;
+        const maxMessages = 50;
+
+        function updateStatus(text, isError = false) {
+            statusText.textContent = text;
+            statusDiv.className = isError ? 'status error' : 'status connected';
+        }
+
+        function addMessage(text, type = 'info') {
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${type}`;
+            messageEl.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+            
+            messagesDiv.insertBefore(messageEl, messagesDiv.firstChild);
+            
+            // Keep only the latest messages
+            messageCount++;
+            if (messageCount > maxMessages) {
+                messagesDiv.removeChild(messagesDiv.lastChild);
+            }
+        }
+
+        function displayDevices(midiAccess) {
+            const inputs = Array.from(midiAccess.inputs.values());
+            const outputs = Array.from(midiAccess.outputs.values());
+            
+            if (inputs.length === 0 && outputs.length === 0) {
+                devicesDiv.innerHTML = '<p style="color: #ff6b6b;">No MIDI devices found. Please connect a MIDI device and refresh the page.</p>';
+                return;
+            }
+            
+            let html = '';
+            
+            if (inputs.length > 0) {
+                html += '<h3>Input Devices:</h3>';
+                inputs.forEach((input, index) => {
+                    html += `
+                        <div class="device">
+                            <strong>${index + 1}. ${input.name}</strong><br>
+                            ID: ${input.id}<br>
+                            Manufacturer: ${input.manufacturer || 'Unknown'}<br>
+                            State: ${input.state}<br>
+                            Connection: ${input.connection}
+                        </div>`;
+                    
+                    // Attach message listener
+                    input.onmidimessage = function(event) {
+                        const [status, data1, data2] = event.data;
+                        const command = status & 0xf0;
+                        const channel = (status & 0x0f) + 1;
+                        
+                        let messageType = 'Unknown';
+                        let details = '';
+                        
+                        switch(command) {
+                            case 0x90:
+                                if (data2 > 0) {
+                                    messageType = 'Note On';
+                                    details = `Note: ${data1}, Velocity: ${data2}`;
+                                } else {
+                                    messageType = 'Note Off';
+                                    details = `Note: ${data1}`;
+                                }
+                                break;
+                            case 0x80:
+                                messageType = 'Note Off';
+                                details = `Note: ${data1}, Velocity: ${data2}`;
+                                break;
+                            case 0xB0:
+                                messageType = 'Control Change';
+                                details = `CC: ${data1}, Value: ${data2}`;
+                                break;
+                            case 0xC0:
+                                messageType = 'Program Change';
+                                details = `Program: ${data1}`;
+                                break;
+                            case 0xE0:
+                                messageType = 'Pitch Bend';
+                                details = `Value: ${(data2 << 7) + data1}`;
+                                break;
+                        }
+                        
+                        addMessage(`${input.name} - ${messageType} (Ch${channel}): ${details}`, 'success');
+                    };
+                });
+            }
+            
+            if (outputs.length > 0) {
+                html += '<h3>Output Devices:</h3>';
+                outputs.forEach((output, index) => {
+                    html += `
+                        <div class="device">
+                            <strong>${index + 1}. ${output.name}</strong><br>
+                            ID: ${output.id}<br>
+                            Manufacturer: ${output.manufacturer || 'Unknown'}<br>
+                            State: ${output.state}<br>
+                            Connection: ${output.connection}
+                        </div>`;
+                });
+            }
+            
+            devicesDiv.innerHTML = html;
+        }
+
+        // Initialize MIDI
+        if (navigator.requestMIDIAccess) {
+            addMessage('Web MIDI API supported. Requesting access...', 'info');
+            
+            navigator.requestMIDIAccess()
+                .then(function(midiAccess) {
+                    const inputCount = midiAccess.inputs.size;
+                    const outputCount = midiAccess.outputs.size;
+                    
+                    updateStatus(`Connected! ${inputCount} inputs, ${outputCount} outputs`);
+                    addMessage(`MIDI access granted. Found ${inputCount} input(s) and ${outputCount} output(s)`, 'success');
+                    
+                    displayDevices(midiAccess);
+                    
+                    // Listen for device changes
+                    midiAccess.onstatechange = function(event) {
+                        addMessage(`Device state changed: ${event.port.name} is now ${event.port.state}`, 'info');
+                        displayDevices(midiAccess);
+                    };
+                })
+                .catch(function(error) {
+                    updateStatus('MIDI access failed: ' + error.message, true);
+                    addMessage('MIDI access failed: ' + error.message, 'error');
+                    devicesDiv.innerHTML = '<p style="color: #ff6b6b;">Failed to access MIDI devices. Check browser permissions.</p>';
+                });
+        } else {
+            updateStatus('Web MIDI API not supported', true);
+            addMessage('Web MIDI API not supported in this browser', 'error');
+            devicesDiv.innerHTML = '<p style="color: #ff6b6b;">Web MIDI API not supported. Please use Chrome, Edge, or Opera.</p>';
+        }
+    </script>
+</body>
+</html> 

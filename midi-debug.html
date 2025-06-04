@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI Debug Tool - nanoPAD2 Detection</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #00ff88;
+            text-align: center;
+        }
+        
+        .status-box {
+            background-color: #2a2a2a;
+            border: 2px solid #444;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .success { border-color: #00ff88; }
+        .warning { border-color: #ff8800; }
+        .error { border-color: #ff4444; }
+        
+        .device-list {
+            background-color: #333;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        
+        .device-item {
+            background-color: #444;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        
+        .device-item.nanopad {
+            background-color: #004d40;
+            border-left: 4px solid #00ff88;
+        }
+        
+        button {
+            background-color: #007acc;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background-color: #005fa3;
+        }
+        
+        button:disabled {
+            background-color: #666;
+            cursor: not-allowed;
+        }
+        
+        .log-area {
+            background-color: #000;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .midi-activity {
+            background-color: #1a0066;
+            border: 2px solid #3300cc;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            min-height: 60px;
+        }
+        
+        .activity-item {
+            background-color: #2a0088;
+            padding: 5px 10px;
+            margin: 3px 0;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .tips {
+            background-color: #2a2a00;
+            border: 2px solid #666600;
+            color: #ffff88;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .tips h3 {
+            margin-top: 0;
+            color: #ffff00;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎹 MIDI Debug Tool</h1>
+        <h2>nanoPAD2 Detection and Testing</h2>
+        
+        <div id="browserCheck" class="status-box">
+            <h3>Browser Compatibility</h3>
+            <div id="browserStatus">Checking...</div>
+        </div>
+        
+        <div class="status-box">
+            <h3>Actions</h3>
+            <button id="scanBtn" onclick="scanForDevices()">🔍 Scan for MIDI Devices</button>
+            <button id="refreshBtn" onclick="location.reload()">🔄 Refresh Page</button>
+            <button id="clearLogBtn" onclick="clearLog()">🗑️ Clear Log</button>
+        </div>
+        
+        <div id="deviceStatus" class="status-box">
+            <h3>MIDI Devices</h3>
+            <div id="deviceInfo">Click "Scan for MIDI Devices" to check</div>
+        </div>
+        
+        <div class="midi-activity">
+            <h3>🎵 Live MIDI Activity</h3>
+            <div id="midiActivity">No MIDI messages received yet...</div>
+        </div>
+        
+        <div class="status-box">
+            <h3>📋 Debug Log</h3>
+            <div id="logArea" class="log-area"></div>
+        </div>
+        
+        <div class="tips">
+            <h3>💡 Troubleshooting Tips</h3>
+            <ul>
+                <li><strong>Connection:</strong> Ensure nanoPAD2 is connected via USB and powered on</li>
+                <li><strong>Browser:</strong> Use Chrome, Firefox, or Edge for best MIDI support</li>
+                <li><strong>HTTPS:</strong> This page must be served over HTTPS for MIDI access</li>
+                <li><strong>Permissions:</strong> Browser may ask for MIDI device permissions</li>
+                <li><strong>Other Apps:</strong> Close other applications that might be using the device</li>
+                <li><strong>Device Manager:</strong> Check if device appears in system MIDI settings</li>
+                <li><strong>Refresh:</strong> Try refreshing after connecting/disconnecting device</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let midiAccess = null;
+        let activityCount = 0;
+        const maxActivityItems = 10;
+        
+        // Check browser compatibility immediately
+        checkBrowserCompatibility();
+        
+        function checkBrowserCompatibility() {
+            const browserStatus = document.getElementById('browserStatus');
+            const browserCheck = document.getElementById('browserCheck');
+            
+            let statusHTML = '';
+            let hasIssues = false;
+            
+            // Check Web MIDI API
+            if (!navigator.requestMIDIAccess) {
+                statusHTML += '❌ Web MIDI API not supported<br>';
+                hasIssues = true;
+            } else {
+                statusHTML += '✅ Web MIDI API supported<br>';
+            }
+            
+            // Check secure context
+            if (!window.isSecureContext) {
+                statusHTML += '❌ Not in secure context (HTTPS required)<br>';
+                hasIssues = true;
+            } else {
+                statusHTML += '✅ Secure context (HTTPS)<br>';
+            }
+            
+            // Browser info
+            statusHTML += `🌐 Browser: ${navigator.userAgent}<br>`;
+            statusHTML += `💻 Platform: ${navigator.platform}`;
+            
+            browserStatus.innerHTML = statusHTML;
+            browserCheck.className = hasIssues ? 'status-box error' : 'status-box success';
+            
+            if (hasIssues) {
+                log('❌ Browser compatibility issues detected');
+            } else {
+                log('✅ Browser compatibility check passed');
+            }
+        }
+        
+        async function scanForDevices() {
+            const scanBtn = document.getElementById('scanBtn');
+            const deviceInfo = document.getElementById('deviceInfo');
+            const deviceStatus = document.getElementById('deviceStatus');
+            
+            scanBtn.disabled = true;
+            scanBtn.textContent = '🔍 Scanning...';
+            deviceInfo.innerHTML = 'Scanning for MIDI devices...';
+            
+            log('🔍 Starting MIDI device scan...');
+            
+            try {
+                midiAccess = await navigator.requestMIDIAccess();
+                log('✅ MIDI access granted');
+                
+                setupMIDIAccess();
+                displayDevices();
+                
+                deviceStatus.className = 'status-box success';
+                
+            } catch (error) {
+                log('❌ Failed to get MIDI access: ' + error.message);
+                deviceInfo.innerHTML = '❌ Failed to access MIDI devices: ' + error.message;
+                deviceStatus.className = 'status-box error';
+            }
+            
+            scanBtn.disabled = false;
+            scanBtn.textContent = '🔍 Scan for MIDI Devices';
+        }
+        
+        function setupMIDIAccess() {
+            // Set up device state change monitoring
+            midiAccess.onstatechange = (event) => {
+                log(`🔄 Device ${event.port.state}: ${event.port.name} (${event.port.type})`);
+                displayDevices();
+            };
+            
+            // Set up MIDI message handlers for all inputs
+            for (let input of midiAccess.inputs.values()) {
+                input.onmidimessage = handleMIDIMessage;
+            }
+        }
+        
+        function handleMIDIMessage(msg) {
+            const [status, data1, data2] = msg.data;
+            const command = status >> 4;
+            const channel = status & 0x0F;
+            
+            let messageType = '';
+            let messageData = '';
+            
+            switch (command) {
+                case 0x9: // Note On
+                    if (data2 > 0) {
+                        messageType = '🥁 Note ON';
+                        messageData = `Note: ${data1}, Velocity: ${data2}`;
+                    } else {
+                        messageType = '🔇 Note OFF';
+                        messageData = `Note: ${data1}`;
+                    }
+                    break;
+                case 0x8: // Note Off
+                    messageType = '🔇 Note OFF';
+                    messageData = `Note: ${data1}`;
+                    break;
+                case 0xB: // Control Change
+                    messageType = '🎛️ Control Change';
+                    messageData = `CC${data1}: ${data2}`;
+                    break;
+                default:
+                    messageType = '❓ Other';
+                    messageData = `Command: 0x${command.toString(16)}, Data: ${data1}, ${data2}`;
+            }
+            
+            addMIDIActivity(`${messageType} - ${messageData} (Ch: ${channel + 1})`);
+            log(`🎵 MIDI: ${messageType} - ${messageData} (Channel: ${channel + 1})`);
+        }
+        
+        function addMIDIActivity(message) {
+            const activityDiv = document.getElementById('midiActivity');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const activityItem = document.createElement('div');
+            activityItem.className = 'activity-item';
+            activityItem.textContent = `[${timestamp}] ${message}`;
+            
+            // Add to top
+            if (activityDiv.firstChild && activityDiv.firstChild.className === 'activity-item') {
+                activityDiv.insertBefore(activityItem, activityDiv.firstChild);
+            } else {
+                activityDiv.innerHTML = '';
+                activityDiv.appendChild(activityItem);
+            }
+            
+            // Limit number of activity items
+            const items = activityDiv.getElementsByClassName('activity-item');
+            while (items.length > maxActivityItems) {
+                activityDiv.removeChild(items[items.length - 1]);
+            }
+        }
+        
+        function displayDevices() {
+            if (!midiAccess) return;
+            
+            const deviceInfo = document.getElementById('deviceInfo');
+            let html = '';
+            
+            // Count devices
+            const inputCount = midiAccess.inputs.size;
+            const outputCount = midiAccess.outputs.size;
+            
+            html += `<div><strong>Found ${inputCount} input(s) and ${outputCount} output(s)</strong></div>`;
+            
+            // Display inputs
+            if (inputCount > 0) {
+                html += '<div class="device-list"><h4>📥 Input Devices:</h4>';
+                let inputIndex = 1;
+                for (let input of midiAccess.inputs.values()) {
+                    const isNanoPAD = isLikelyNanoPAD2(input.name);
+                    html += `
+                        <div class="device-item ${isNanoPAD ? 'nanopad' : ''}">
+                            <strong>${inputIndex}. ${input.name || 'Unknown Device'}</strong>
+                            ${isNanoPAD ? ' 🎯 <em>(Likely nanoPAD2!)</em>' : ''}
+                            <br>Manufacturer: ${input.manufacturer || 'Unknown'}
+                            <br>State: ${input.state} | Connection: ${input.connection}
+                            <br>ID: ${input.id}
+                        </div>
+                    `;
+                    inputIndex++;
+                }
+                html += '</div>';
+            }
+            
+            // Display outputs
+            if (outputCount > 0) {
+                html += '<div class="device-list"><h4>📤 Output Devices:</h4>';
+                let outputIndex = 1;
+                for (let output of midiAccess.outputs.values()) {
+                    const isNanoPAD = isLikelyNanoPAD2(output.name);
+                    html += `
+                        <div class="device-item ${isNanoPAD ? 'nanopad' : ''}">
+                            <strong>${outputIndex}. ${output.name || 'Unknown Device'}</strong>
+                            ${isNanoPAD ? ' 🎯 <em>(Likely nanoPAD2!)</em>' : ''}
+                            <br>Manufacturer: ${output.manufacturer || 'Unknown'}
+                            <br>State: ${output.state} | Connection: ${output.connection}
+                            <br>ID: ${output.id}
+                        </div>
+                    `;
+                    outputIndex++;
+                }
+                html += '</div>';
+            }
+            
+            if (inputCount === 0 && outputCount === 0) {
+                html += '<div style="color: #ff8800;">⚠️ No MIDI devices found. Check connections and try refreshing.</div>';
+            }
+            
+            deviceInfo.innerHTML = html;
+            
+            // Log device summary
+            log(`📊 Device summary: ${inputCount} inputs, ${outputCount} outputs`);
+            for (let input of midiAccess.inputs.values()) {
+                log(`📥 Input: ${input.name} (${input.manufacturer || 'Unknown'})`);
+            }
+            for (let output of midiAccess.outputs.values()) {
+                log(`📤 Output: ${output.name} (${output.manufacturer || 'Unknown'})`);
+            }
+        }
+        
+        function isLikelyNanoPAD2(deviceName) {
+            if (!deviceName) return false;
+            const name = deviceName.toLowerCase();
+            const searchTerms = ['nanopad2', 'nanopad', 'nanopAd2', 'korg'];
+            return searchTerms.some(term => name.includes(term));
+        }
+        
+        function log(message) {
+            const logArea = document.getElementById('logArea');
+            const timestamp = new Date().toLocaleTimeString();
+            logArea.innerHTML += `[${timestamp}] ${message}\n`;
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            document.getElementById('logArea').innerHTML = '';
+            document.getElementById('midiActivity').innerHTML = 'No MIDI messages received yet...';
+        }
+        
+        // Auto-scan on page load if browser supports it
+        window.addEventListener('load', () => {
+            if (navigator.requestMIDIAccess && window.isSecureContext) {
+                log('🚀 Page loaded, auto-scanning for devices...');
+                setTimeout(scanForDevices, 1000);
+            } else {
+                log('⚠️ Auto-scan skipped due to browser limitations');
+            }
+        });
+    </script>
+</body>
+</html> 

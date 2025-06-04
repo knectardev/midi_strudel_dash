@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Musical Call & Response</title>
+    <script src="https://cdn.jsdelivr.net/npm/@magenta/music@1.23.1"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+        }
+        .scale-selector {
+            width: 200px;
+            padding: 20px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .scale-button {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .scale-button.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .scale-button:hover {
+            background-color: #e0e0e0;
+        }
+        .scale-button.active:hover {
+            background-color: #45a049;
+        }
+        .scale-category {
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .keyboard {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .key {
+            width: 60px;
+            height: 120px;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 10px;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+        .key.active {
+            background-color: #b3d1ff !important;
+            border-color: #1565c0 !important;
+        }
+        .controls {
+            display: flex;
+            gap: 40px;
+            justify-content: flex-start;
+            align-items: flex-start;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #e8e8e8;
+            text-align: center;
+        }
+        .status.error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .status.loading {
+            background-color: #e3f2fd;
+            color: #1565c0;
+        }
+        .status.success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        select, button {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .viz-row {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        .viz-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .viz-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .copy-button {
+            padding: 4px 8px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: background-color 0.2s;
+        }
+        .copy-button:hover {
+            background-color: #45a049;
+        }
+        .copy-button.copied {
+            background-color: #2196F3;
+        }
+        .visualization {
+            width: 100%;
+            height: 200px;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre;
+            overflow: auto;
+            box-sizing: border-box;
+            padding: 8px;
+        }
+        .error-message {
+            color: #c62828;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
+        .key.playback-active {
+            background-color: #ffd580 !important;
+            border-color: #ff9800 !important;
+        }
+        .drone-control {
+            margin-left: 20px;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .key, .key * {
+            user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+        }
+        /* Circular interface styles */
+        .wheel-container {
+            position: relative;
+            width: 500px;
+            height: 500px;
+            margin: 20px auto;
+        }
+        
+        .note-label {
+            font-size: 14px;
+            font-weight: bold;
+            text-anchor: middle;
+            pointer-events: none;
+            fill: white;
+        }
+        
+        .key-segment {
+            cursor: pointer;
+            transition: opacity 0.5s;
+        }
+        
+        .key-segment:hover {
+            opacity: 0.8;
+            stroke: #fff;
+            stroke-width: 2px;
+        }
+        
+        .disabled {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* Add interface selector */
+        .interface-selector {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .interface-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .interface-button.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <button id="hushButton" style="position: fixed; top: 20px; right: 30px; z-index: 1000; padding: 12px 24px; font-size: 1.1em; background: #c62828; color: white; border: none; border-radius: 6px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">Hush</button>
+    
+    <!-- Interface selector -->
+    <div class="interface-selector">
+        <button class="interface-button" id="chromaticButton" style="background-color: #444444; color: white;">Chromatic</button>
+        <button class="interface-button active" data-interface="keyboard">Keyboard Interface</button>
+        <button class="interface-button" data-interface="wheel">Circular Interface</button>
+    </div>
+
+    <div class="container">
+        <div class="scale-selector">
+            <div class="scale-category">Western Scales</div>
+            <button class="scale-button" data-scale="major">Major (Ionian)</button>
+            <button class="scale-button" data-scale="natural-minor">Natural Minor</button>
+            <button class="scale-button" data-scale="harmonic-minor">Harmonic Minor</button>
+            <button class="scale-button" data-scale="melodic-minor">Melodic Minor</button>
+            <button class="scale-button" data-scale="diminished">Diminished</button>
+            
+            <div class="scale-category">Indian Ragas</div>
+            <button class="scale-button" data-scale="bhairav">Bhairav</button>
+            <button class="scale-button" data-scale="bhairavi">Bhairavi</button>
+            <button class="scale-button" data-scale="yaman">Yaman</button>
+            <button class="scale-button" data-scale="kafi">Kafi</button>
+            <button class="scale-button" data-scale="asavari">Asavari</button>
+            <button class="scale-button" data-scale="todi">Todi</button>
+            <button class="scale-button" data-scale="purvi">Purvi</button>
+            <button class="scale-button" data-scale="marwa">Marwa</button>
+            <button class="scale-button" data-scale="khamaj">Khamaj</button>
+            <button class="scale-button" data-scale="kalyan">Kalyan</button>
+        </div>
+        <div class="main-content">
+            <h1>Musical Call & Response</h1>
+            
+            <!-- Wheel container -->
+            <div class="wheel-container" style="display: none;">
+                <svg id="wheel" width="500" height="500"></svg>
+            </div>
+
+            <div class="controls" style="gap: 40px; flex-wrap: wrap; justify-content: flex-start; align-items: flex-start;">
+                <!-- Sound Controls Group -->
+                <fieldset style="min-width: 260px; border: 1px solid #bbb; border-radius: 8px; padding: 12px 18px; margin: 0; background: #f8f8f8;">
+                    <legend style="font-weight: bold; color: #333;">Sound Controls</legend>
+                    <div style="margin-bottom: 10px;">
+                        <label>Waveform:
+                            <select id="waveform">
+                                <option value="sine">Sine</option>
+                                <option value="square">Square</option>
+                                <option value="sawtooth">Sawtooth</option>
+                                <option value="triangle">Triangle</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="portamento-control" style="margin-bottom: 10px; background-color: #f0f0f0; padding: 8px; border-radius: 5px;">
+                        <label>
+                            Portamento Time:
+                            <input type="range" id="portamentoTime" min="0" max="1000" value="0" style="width: 100px; margin-left: 10px;">
+                            <span id="portamentoTimeValue">0ms</span>
+                        </label>
+                    </div>
+                    <div class="beat-control" style="margin-bottom: 10px; background-color: #f0f0f0; padding: 8px; border-radius: 5px;">
+                        <label>
+                            Beat Feedback Volume:
+                            <input type="range" id="beatVolume" min="-40" max="0" value="-20" style="width: 100px; margin-left: 10px;">
+                            <span id="beatVolumeValue">-20dB</span>
+                        </label>
+                        <div id="beatStatus" style="margin-top: 6px; font-size: 0.9em; color: #666;">
+                            No beat detected
+                        </div>
+                    </div>
+                    <div class="drone-control" style="background-color: #f0f0f0; padding: 8px; border-radius: 5px;">
+                        <label>
+                            <input type="checkbox" id="droneToggle"> Drone
+                            <input type="range" id="droneVolume" min="0" max="100" value="10" style="width: 100px; margin-left: 10px;">
+                            <span id="droneVolumeValue">10%</span>
+                        </label>
+                        <div style="margin-top: 6px;">
+                            <label>Waveform:
+                                <select id="droneWaveform" style="margin-left: 5px;">
+                                    <option value="sine">Sine</option>
+                                    <option value="square">Square</option>
+                                    <option value="sawtooth">Sawtooth</option>
+                                    <option value="triangle">Triangle</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- Response Controls Group -->
+                <fieldset style="min-width: 340px; border: 1px solid #bbb; border-radius: 8px; padding: 12px 18px; margin: 0; background: #f8f8f8;">
+                    <legend style="font-weight: bold; color: #333;">Response Controls</legend>
+                    <div style="margin-bottom: 10px;">
+                        <label>Magenta Response:
+                            <select id="responseMode">
+                                <option value="magenta">Magenta (AI)</option>
+                                <option value="replica" selected>Exact Replica</option>
+                                <option value="reverse">Reverse</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <label>Steps: <input type="range" id="stepsSlider" min="8" max="64" step="4" value="32"> <span id="stepsValue">32</span></label>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <label>Temperature: <input type="range" id="tempSlider" min="0" max="2" step="0.01" value="1"> <span id="tempValue">1.00</span></label>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <label><input type="checkbox" id="matchInputLength" checked> Match response length to input</label>
+                    </div>
+                    <div style="margin-bottom: 0;">
+                        <label><input type="radio" name="bufferMode" value="clear" checked> Clear buffer after response</label>
+                        <label style="margin-left: 10px;"><input type="radio" name="bufferMode" value="append"> Append response to buffer</label>
+                    </div>
+                </fieldset>
+            </div>
+            <!-- Action Buttons Group moved outside fieldsets -->
+            <div style="display: flex; flex-direction: row; gap: 20px; justify-content: flex-start; align-items: center; margin: 18px 0 0 0;">
+                <button id="generateResponse" disabled style="min-width: 160px;">Generate Response</button>
+                <button id="clearCall" style="min-width: 160px;">Clear Call</button>
+            </div>
+            <div class="status" id="status">Initializing...</div>
+            <div class="error-message" id="errorMessage"></div>
+            <div class="keyboard" id="keyboard"></div>
+            <div class="viz-row">
+                <div class="viz-col">
+                    <div class="viz-title">
+                        Call
+                        <button class="copy-button" data-target="callVisualization">Copy</button>
+                    </div>
+                    <div class="visualization" id="callVisualization"></div>
+                </div>
+                <div class="viz-col">
+                    <div class="viz-title">
+                        Response
+                        <button class="copy-button" data-target="responseVisualization">Copy</button>
+                    </div>
+                    <div class="visualization" id="responseVisualization"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize audio context and synthesizer
+        let audioContext;
+        let synth;
+        let droneSynth;
+        let beatSynth; // New beat synthesizer
+        let isAudioContextInitialized = false;
+        let isDroneActive = false;
+        let isHushed = false;
+        let previousDroneState = false;
+        let previousDroneVolume = 15;
+        let currentTemperature = 1.0;
+        let detectedBeat = null; // Store detected beat interval
+        let beatConfidence = 0; // Confidence in beat detection (0-1)
+        let persistentBeatInterval = null;
+        let persistentBeatTimer = null;
+        let persistentBeatActive = false;
+        let lockedBeatInterval = null;
+
+        // Circular interface variables
+        let currentInterface = 'keyboard';
+        const svg = d3.select("#wheel");
+        const width = 500;
+        const height = 500;
+        const radius = Math.min(width, height) / 2 - 20;
+        const innerRadiusPercent = 0.5;
+        const wheelGroup = svg.append("g")
+            .attr("transform", `translate(${width / 2}, ${height / 2})`);
+        
+        const arc = d3.arc()
+            .innerRadius(() => radius * innerRadiusPercent)
+            .outerRadius(radius);
+
+        // Add note colors for the wheel
+        const noteColors = {
+            'C': '#444444',
+            'C#': '#63cc00',
+            'D': '#adcc00',
+            'D#': '#cca600',
+            'E': '#cc6300',
+            'F': '#cc001f',
+            'F#': '#cc0063',
+            'G': '#cc00c9',
+            'G#': '#8c00cc',
+            'A': '#4700cc',
+            'A#': '#0300cc',
+            'B': '#0040cc',
+            'C5': '#888888' // Add color for C5
+        };
+
+        // Function to create the wheel segments
+        function createWheel(scaleType, animate = false) {
+            let scaleNotes;
+            if (scaleType === 'chromatic') {
+                // Always show all 12 notes plus C5
+                scaleNotes = [
+                    { label: 'C', color: noteColors['C'] },
+                    { label: 'C#', color: noteColors['C#'] },
+                    { label: 'D', color: noteColors['D'] },
+                    { label: 'D#', color: noteColors['D#'] },
+                    { label: 'E', color: noteColors['E'] },
+                    { label: 'F', color: noteColors['F'] },
+                    { label: 'F#', color: noteColors['F#'] },
+                    { label: 'G', color: noteColors['G'] },
+                    { label: 'G#', color: noteColors['G#'] },
+                    { label: 'A', color: noteColors['A'] },
+                    { label: 'A#', color: noteColors['A#'] },
+                    { label: 'B', color: noteColors['B'] },
+                    { label: 'C5', color: noteColors['C5'] }
+                ];
+            } else {
+                // For other scales, show scale notes (from C4) plus C5
+                scaleNotes = scales[scaleType].map(idx => ({
+                    label: notes[idx],
+                    color: noteColors[notes[idx]]
+                }));
+                // Always add C5 as the last segment
+                scaleNotes.push({ label: 'C5', color: noteColors['C5'] });
+            }
+            
+            const pie = d3.pie()
+                .value(() => 1)
+                .sort(null)
+                .startAngle(-Math.PI / 2 - Math.PI / scaleNotes.length)
+                .endAngle(Math.PI * 1.5 - Math.PI / scaleNotes.length);
+            
+            const scaleData = scaleNotes.map(note => ({ note }));
+            const arcs = pie(scaleData);
+            
+            if (animate) {
+                wheelGroup.selectAll(".key-segment")
+                    .classed("disabled", function(d) {
+                        // Only disable if not in scaleNotes
+                        return !scaleNotes.some(n => n.label === d.data.note.label);
+                    });
+                
+                setTimeout(() => {
+                    wheelGroup.selectAll(".key-segment.disabled")
+                        .transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                    
+                    setTimeout(() => {
+                        wheelGroup.selectAll(".key-segment").remove();
+                        wheelGroup.selectAll(".note-label").remove();
+                        
+                        const segments = wheelGroup.selectAll(".key-segment")
+                            .data(arcs)
+                            .enter()
+                            .append("path")
+                            .attr("class", "key-segment")
+                            .attr("d", arc)
+                            .style("fill", d => d.data.note.color)
+                            .on("mouseover", handleWheelMouseOver)
+                            .on("mouseout", handleWheelMouseOut)
+                            .on("click", handleWheelClick);
+                        
+                        wheelGroup.selectAll(".note-label")
+                            .data(arcs)
+                            .enter()
+                            .append("text")
+                            .attr("class", "note-label")
+                            .attr("transform", d => {
+                                const centroid = arc.centroid(d);
+                                return `translate(${centroid[0]}, ${centroid[1]})`;
+                            })
+                            .text(d => d.data.note.label);
+                    }, 500);
+                }, 500);
+            } else {
+                wheelGroup.selectAll(".key-segment").remove();
+                wheelGroup.selectAll(".note-label").remove();
+                const segments = wheelGroup.selectAll(".key-segment")
+                    .data(arcs)
+                    .enter()
+                    .append("path")
+                    .attr("class", "key-segment")
+                    .attr("d", arc)
+                    .style("fill", d => d.data.note.color)
+                    .on("mouseover", handleWheelMouseOver)
+                    .on("mouseout", handleWheelMouseOut)
+                    .on("click", handleWheelClick);
+                
+                wheelGroup.selectAll(".note-label")
+                    .data(arcs)
+                    .enter()
+                    .append("text")
+                    .attr("class", "note-label")
+                    .attr("transform", d => {
+                        const centroid = arc.centroid(d);
+                        return `translate(${centroid[0]}, ${centroid[1]})`;
+                    })
+                    .text(d => d.data.note.label);
+            }
+        }
+
+        // Wheel event handlers
+        function handleWheelMouseOver(event, d) {
+            if (!isAudioContextInitialized || isHushed) return;
+            d3.select(this)
+                .transition()
+                .duration(150)
+                .attr("transform", function() {
+                    const centroid = arc.centroid(d);
+                    const x = centroid[0] * 0.05;
+                    const y = centroid[1] * 0.05;
+                    return `translate(${x},${y})`;
+                });
+            const note = d.data.note.label;
+            if (note === 'C5') {
+                handleNoteOn('C', Tone.now(), 5);
+            } else {
+                handleNoteOn(note, Tone.now(), 4);
+            }
+        }
+        
+        function handleWheelMouseOut(event, d) {
+            d3.select(this)
+                .transition()
+                .duration(150)
+                .attr("transform", "translate(0,0)");
+            const note = d.data.note.label;
+            if (note === 'C5') {
+                handleNoteOff('C', 5);
+            } else {
+                handleNoteOff(note, 4);
+            }
+        }
+        
+        function handleWheelClick(event, d) {
+            if (!isAudioContextInitialized || isHushed) return;
+            const note = d.data.note.label;
+            if (note === 'C5') {
+                handleNoteOn('C', Tone.now(), 5);
+                setTimeout(() => handleNoteOff('C', 5), 500);
+            } else {
+                handleNoteOn(note, Tone.now(), 4);
+                setTimeout(() => handleNoteOff(note, 4), 500);
+            }
+        }
+
+        // Interface switching
+        document.querySelectorAll('.interface-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const interface = button.dataset.interface;
+                if (interface === currentInterface) return;
+                
+                currentInterface = interface;
+                document.querySelectorAll('.interface-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                button.classList.add('active');
+                
+                const keyboardContainer = document.querySelector('.keyboard');
+                const wheelContainer = document.querySelector('.wheel-container');
+                
+                if (interface === 'keyboard') {
+                    keyboardContainer.style.display = 'flex';
+                    wheelContainer.style.display = 'none';
+                } else {
+                    keyboardContainer.style.display = 'none';
+                    wheelContainer.style.display = 'block';
+                    // Use chromatic scale for wheel interface
+                    createWheel('chromatic');
+                }
+            });
+        });
+
+        // Add chromatic mode state
+        let isChromaticMode = false;
+
+        // Add chromatic button handler
+        document.getElementById('chromaticButton').addEventListener('click', () => {
+            isChromaticMode = true;
+            if (currentInterface === 'wheel') {
+                createWheel('chromatic', true);
+            }
+            // Update scale buttons to show none active
+            document.querySelectorAll('.scale-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            // Make all keys visible in keyboard interface
+            document.querySelectorAll('.key').forEach(key => {
+                if (key.dataset.note === 'C' && key.dataset.octave === '5') {
+                    key.style.opacity = '1';
+                } else {
+                    key.style.opacity = '1';
+                }
+            });
+        });
+
+        // Modify updateActiveNotes to respect chromatic mode
+        function updateActiveNotes(scaleName) {
+            isChromaticMode = false; // Reset chromatic mode when changing scales
+            
+            // Existing keyboard update code
+            document.querySelectorAll('.key').forEach(key => {
+                key.classList.remove('active');
+                if (key.dataset.note === 'C' && key.dataset.octave === '5') {
+                    key.style.opacity = '1';
+                } else {
+                    key.style.opacity = '0.5';
+                }
+            });
+            
+            const scaleNotes = scales[scaleName];
+            scaleNotes.forEach(noteIndex => {
+                const key = document.querySelector(`[data-note="${notes[noteIndex]}"][data-octave="4"]`);
+                if (key) {
+                    key.style.opacity = '1';
+                }
+            });
+            
+            activeScale = scaleName;
+            
+            document.querySelectorAll('.scale-button').forEach(button => {
+                button.classList.remove('active');
+                if (button.dataset.scale === scaleName) {
+                    button.classList.add('active');
+                }
+            });
+
+            // Update wheel if it's the active interface
+            if (currentInterface === 'wheel') {
+                createWheel(scaleName, true);
+            }
+        }
+
+        async function initializeAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                await Tone.start();
+                
+                // Use a monophonic synth for portamento
+                synth = new Tone.Synth({
+                    oscillator: {
+                        type: document.getElementById('waveform').value
+                    },
+                    envelope: {
+                        attack: 0.005,
+                        decay: 0.1,
+                        sustain: 0.3,
+                        release: 0.1
+                    },
+                    portamento: 0.1
+                }).toDestination();
+                synth.portamento = 0.1;
+
+                // Initialize drone synth
+                droneSynth = new Tone.Synth({
+                    oscillator: {
+                        type: 'sawtooth'
+                    },
+                    envelope: {
+                        attack: 0.5,
+                        decay: 0.2,
+                        sustain: 0.8,
+                        release: 0.5
+                    }
+                }).toDestination();
+
+                // Initialize beat synth with more distinct sound
+                beatSynth = new Tone.NoiseSynth({
+                    noise: {
+                        type: 'pink'  // Changed from 'white' to 'pink' for a more musical sound
+                    },
+                    envelope: {
+                        attack: 0.001,
+                        decay: 0.2,   // Increased decay for more audible sound
+                        sustain: 0,
+                        release: 0.2  // Increased release for more audible sound
+                    }
+                }).toDestination();
+                
+                // Set initial volume and ensure it's connected
+                beatSynth.volume.value = -10; // Increased default volume
+                document.getElementById('beatVolume').value = -10;
+                document.getElementById('beatVolumeValue').textContent = '-10dB';
+
+                // Test beat sound on initialization
+                setTimeout(() => {
+                    if (!isHushed) {
+                        beatSynth.triggerAttackRelease("32n");
+                    }
+                }, 1000);
+
+                // Set initial drone volume
+                droneSynth.volume.value = Tone.gainToDb(15 / 100);
+                document.getElementById('droneVolume').value = 15;
+                document.getElementById('droneVolumeValue').textContent = '15%';
+                document.getElementById('droneWaveform').value = 'sawtooth';
+
+                isAudioContextInitialized = true;
+                updateStatus("Audio initialized", "success");
+            } catch (error) {
+                showError("Failed to initialize audio: " + error.message);
+            }
+        }
+        
+        // Initialize Magenta
+        let rnn;
+        let isModelLoaded = false;
+        let noteSequence = [];
+        let lastNoteTime = 0;
+        const MIN_NOTE_DURATION = 0.1; // Minimum duration in seconds for a note to be recorded
+        
+        // Load Magenta model
+        async function loadModel() {
+            try {
+                updateStatus("Loading Magenta model...", "loading");
+                rnn = new mm.MusicRNN(
+                    "https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/basic_rnn"
+                );
+                await rnn.initialize();
+                isModelLoaded = true;
+                document.getElementById('generateResponse').disabled = false;
+                updateStatus("Model loaded - Ready to play!", "success");
+            } catch (error) {
+                showError("Error loading model: " + error.message);
+            }
+        }
+
+        // Initialize keyboard
+        const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const keyboardKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='];
+        const specialKeys = {
+            'Backspace': 'C5'  // Map backspace to C5
+        };
+
+        // Scale definitions
+        const scales = {
+            'major': [0, 2, 4, 5, 7, 9, 11], // C D E F G A B
+            'natural-minor': [0, 2, 3, 5, 7, 8, 10], // C D Eb F G Ab Bb
+            'harmonic-minor': [0, 2, 3, 5, 7, 8, 11], // C D Eb F G Ab B
+            'melodic-minor': [0, 2, 3, 5, 7, 9, 11], // C D Eb F G A B
+            'diminished': [0, 2, 3, 5, 6, 8, 9, 11], // C D Eb F Gb Ab A B
+            'bhairav': [0, 1, 4, 5, 7, 8, 11], // C Db E F G Ab B
+            'bhairavi': [0, 1, 3, 5, 6, 8, 10], // C Db Eb F Gb Ab Bb
+            'yaman': [0, 2, 4, 6, 7, 9, 11], // C D E F# G A B
+            'kafi': [0, 2, 3, 5, 7, 9, 10], // C D Eb F G A Bb
+            'asavari': [0, 2, 3, 5, 7, 8, 10], // C D Eb F G Ab Bb
+            'todi': [0, 1, 3, 6, 7, 8, 11], // C Db Eb F# G Ab B
+            'purvi': [0, 1, 4, 6, 7, 8, 11], // C Db E F# G Ab B
+            'marwa': [0, 1, 4, 6, 7, 9, 11], // C Db E F# G A B
+            'khamaj': [0, 2, 4, 5, 7, 9, 10], // C D E F G A Bb
+            'kalyan': [0, 2, 4, 6, 7, 9, 11], // C D E F# G A B
+            'chromatic': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] // All notes in chromatic scale
+        };
+
+        let activeScale = 'major'; // Default scale
+        
+        // Add click handlers for scale buttons
+        document.querySelectorAll('.scale-button').forEach(button => {
+            button.addEventListener('click', () => {
+                updateActiveNotes(button.dataset.scale);
+            });
+        });
+
+        const keyboard = document.getElementById('keyboard');
+        // First add the regular keys
+        notes.forEach((note, index) => {
+            const key = document.createElement('div');
+            key.className = 'key';
+            key.textContent = `${note}\n(${keyboardKeys[index]})`;
+            key.dataset.note = note;
+            key.dataset.key = keyboardKeys[index];
+            key.dataset.octave = '4';
+            keyboard.appendChild(key);
+        });
+        // Then add the C5 key
+        const c5Key = document.createElement('div');
+        c5Key.className = 'key';
+        c5Key.textContent = 'C5\n(BS)';
+        c5Key.dataset.note = 'C';
+        c5Key.dataset.key = 'Backspace';
+        c5Key.dataset.octave = '5';
+        c5Key.style.backgroundColor = 'white'; // Match other keys
+        c5Key.style.opacity = '1'; // Always fully visible
+        c5Key.style.cursor = 'pointer'; // Always clickable
+        keyboard.appendChild(c5Key);
+
+        // Track the currently hovered note for slide effect
+        let currentHoveredKey = null;
+        let currentHoveredNote = null;
+        let currentHoveredOctave = null;
+        // Track if C5 is held by keyboard
+        let c5KeyHeldByKeyboard = false;
+        // Mouse glide mode
+        let isMouseDown = false;
+        let isGlideMode = false;
+
+        // Track held notes (by MIDI number)
+        const heldNotes = new Set();
+
+        // Global mouse down/up listeners
+        document.addEventListener('mousedown', (e) => {
+            if (e.button === 0) { // left mouse button
+                isMouseDown = true;
+                isGlideMode = true;
+            }
+        });
+        document.addEventListener('mouseup', (e) => {
+            if (e.button === 0) {
+                isMouseDown = false;
+                isGlideMode = false;
+                // Reset portamento to slider value after glide or hover
+                if (synth) {
+                    const portamentoMs = parseInt(document.getElementById('portamentoTime').value, 10);
+                    synth.portamento = Math.max(0.01, portamentoMs / 1000);
+                }
+            }
+        });
+
+        function handleMouseEnter(e) {
+            if (!e.target.classList.contains('key')) return;
+            const note = e.target.dataset.note;
+            const octave = e.target.dataset.octave ? parseInt(e.target.dataset.octave) : 4;
+            const noteIndex = notes.indexOf(note);
+            const midi = noteIndex + (octave * 12);
+            // If already hovering this note, do nothing
+            if (currentHoveredKey === e.target) return;
+            // Only trigger if not already held
+            if (heldNotes.has(midi)) {
+                currentHoveredKey = e.target;
+                currentHoveredNote = note;
+                currentHoveredOctave = octave;
+                return;
+            }
+            // Release previous note if any
+            if (currentHoveredKey) {
+                // Only release if not held by keyboard (for C5)
+                if (!(currentHoveredNote === 'C' && currentHoveredOctave === 5 && c5KeyHeldByKeyboard)) {
+                    handleNoteOff(currentHoveredNote, currentHoveredOctave);
+                }
+            }
+            currentHoveredKey = e.target;
+            currentHoveredNote = note;
+            currentHoveredOctave = octave;
+            // Always trigger note on mouseenter (hover or glide)
+            handleNoteOn(note, Tone.now(), octave);
+        }
+
+        function handleMouseLeave(e) {
+            if (!e.target.classList.contains('key')) return;
+            const note = e.target.dataset.note;
+            const octave = e.target.dataset.octave ? parseInt(e.target.dataset.octave) : 4;
+            const noteIndex = notes.indexOf(note);
+            const midi = noteIndex + (octave * 12);
+            // Only release if this is the currently hovered key
+            if (currentHoveredKey === e.target) {
+                // For C5, only release if not held by keyboard
+                if (!(note === 'C' && octave === 5 && c5KeyHeldByKeyboard)) {
+                    handleNoteOff(note, octave);
+                }
+                currentHoveredKey = null;
+                currentHoveredNote = null;
+                currentHoveredOctave = null;
+            }
+        }
+
+        // Attach mouseenter/mouseleave to each key after creation
+        notes.forEach((note, index) => {
+            const key = keyboard.querySelector(`[data-note="${note}"][data-octave="4"]`);
+            if (key) {
+                key.addEventListener('mouseenter', handleMouseEnter);
+                key.addEventListener('mouseleave', handleMouseLeave);
+                // Mouse click support - only for glide mode
+                key.addEventListener('mousedown', function(e) {
+                    isMouseDown = true;
+                    isGlideMode = true;
+                });
+            }
+        });
+        const c5KeyElem = keyboard.querySelector('[data-note="C"][data-octave="5"]');
+        if (c5KeyElem) {
+            c5KeyElem.addEventListener('mouseenter', handleMouseEnter);
+            c5KeyElem.addEventListener('mouseleave', handleMouseLeave);
+            // Mouse click support for C5 - only for glide mode
+            c5KeyElem.addEventListener('mousedown', function(e) {
+                isMouseDown = true;
+                isGlideMode = true;
+            });
+        }
+
+        // Event listeners
+        document.addEventListener('keydown', handleKeyDown);
+        document.addEventListener('keyup', handleKeyUp);
+        document.getElementById('generateResponse').addEventListener('click', generateResponse);
+
+        let silenceTimer = null;
+        const SILENCE_THRESHOLD = 1500; // ms
+
+        function resetSilenceTimer() {
+            if (silenceTimer) clearTimeout(silenceTimer);
+            silenceTimer = setTimeout(() => {
+                if (noteSequence.length > 0) {
+                    generateResponse();
+                }
+            }, SILENCE_THRESHOLD);
+        }
+
+        let bufferMode = 'clear';
+        document.querySelectorAll('input[name="bufferMode"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                bufferMode = e.target.value;
+            });
+        });
+
+        let responseSequence = [];
+        let lastInputSequence = [];
+
+        function updateVisualization() {
+            const callViz = document.getElementById('callVisualization');
+            callViz.textContent = JSON.stringify(lastInputSequence, null, 2);
+            callViz.scrollTop = callViz.scrollHeight;
+            const responseViz = document.getElementById('responseVisualization');
+            responseViz.textContent = JSON.stringify(responseSequence, null, 2);
+            responseViz.scrollTop = responseViz.scrollHeight;
+        }
+
+        // Function to release the current note
+        function releaseAllNotes() {
+            synth.triggerRelease();
+        }
+
+        // Function to play a sequence of notes with proper timing
+        async function playSequence(sequence) {
+            // Release any lingering notes first
+            releaseAllNotes();
+            // Remove playback highlight from all keys
+            document.querySelectorAll('.key.playback-active').forEach(key => key.classList.remove('playback-active'));
+            document.querySelectorAll('.key.active').forEach(key => key.classList.remove('active'));
+
+            if (!sequence || sequence.length === 0) return;
+            const now = Tone.now();
+            const startTime = sequence[0]?.startTime || 0;
+
+            for (let i = 0; i < sequence.length; i++) {
+                const note = sequence[i];
+                const midiPitch = note.pitch;
+                const noteName = notes[midiPitch % 12];
+                const octave = Math.floor(midiPitch / 12);
+                const fullNoteName = noteName + octave;
+                const noteStart = note.startTime - startTime;
+                // If endTime is null, use the next note's startTime, or noteStart + 0.5 for the last note
+                let noteEnd;
+                if (typeof note.endTime === 'number' && !isNaN(note.endTime)) {
+                    noteEnd = note.endTime - startTime;
+                } else if (i < sequence.length - 1) {
+                    noteEnd = sequence[i + 1].startTime - startTime;
+                } else {
+                    noteEnd = noteStart + 0.5;
+                }
+                const duration = Math.max(0.1, noteEnd - noteStart);
+
+                // Schedule note on
+                setTimeout(() => {
+                    // Use note.glide to determine portamento
+                    if (note.glide) {
+                        // Dynamic portamento (same as in handleNoteOn)
+                        let lastPitch = (i > 0) ? sequence[i - 1].pitch : null;
+                        if (lastPitch !== null && lastPitch !== midiPitch) {
+                            const interval = Math.abs(midiPitch - lastPitch);
+                            const maxPortamentoMs = parseInt(document.getElementById('portamentoTime').value, 10);
+                            const baseTime = 0.01;
+                            const maxTime = Math.max(0.01, maxPortamentoMs / 1000);
+                            const dynamicPortamento = baseTime + Math.min(interval, 12) / 12 * (maxTime - baseTime);
+                            synth.portamento = dynamicPortamento;
+                        }
+                    } else {
+                        synth.portamento = 0;
+                    }
+                    synth.triggerAttack(fullNoteName);
+                    // Add playback highlight
+                    const keyElem = document.querySelector(
+                        `[data-note="${noteName}"][data-octave="${octave}"]`
+                    );
+                    if (keyElem) {
+                        keyElem.classList.add('playback-active');
+                        keyElem.classList.add('active');
+                    }
+                }, noteStart * 1000);
+
+                // Schedule note off
+                setTimeout(() => {
+                    synth.triggerRelease();
+                    // Remove playback highlight
+                    const keyElem = document.querySelector(
+                        `[data-note="${noteName}"][data-octave="${octave}"]`
+                    );
+                    if (keyElem) {
+                        keyElem.classList.remove('playback-active');
+                        keyElem.classList.remove('active');
+                    }
+                }, noteEnd * 1000);
+            }
+            // Always release after the maximum endTime in the sequence (with buffer)
+            let maxEnd = 0;
+            for (let i = 0; i < sequence.length; i++) {
+                const note = sequence[i];
+                let noteEnd;
+                if (typeof note.endTime === 'number' && !isNaN(note.endTime)) {
+                    noteEnd = note.endTime;
+                } else if (i < sequence.length - 1) {
+                    noteEnd = sequence[i + 1].startTime;
+                } else {
+                    noteEnd = (note.startTime || 0) + 0.5;
+                }
+                if (typeof noteEnd === 'number' && noteEnd > maxEnd) {
+                    maxEnd = noteEnd;
+                }
+            }
+            // Fallback: if maxEnd is not valid, use last note's startTime + 0.5s
+            let releaseDelay;
+            if (maxEnd > startTime) {
+                releaseDelay = (maxEnd - startTime) * 1000 + 100;
+            } else {
+                const lastNote = sequence[sequence.length - 1];
+                const fallbackEnd = (lastNote && typeof lastNote.startTime === 'number') ? (lastNote.startTime - startTime) * 1000 + 500 : 1000;
+                releaseDelay = fallbackEnd;
+            }
+            setTimeout(() => {
+                synth.triggerRelease();
+                document.querySelectorAll('.key.playback-active').forEach(key => key.classList.remove('playback-active'));
+                document.querySelectorAll('.key.active').forEach(key => key.classList.remove('active'));
+            }, releaseDelay);
+            // Extra failsafe: backup release after 5 seconds
+            setTimeout(() => {
+                synth.triggerRelease();
+                document.querySelectorAll('.key.playback-active').forEach(key => key.classList.remove('playback-active'));
+                document.querySelectorAll('.key.active').forEach(key => key.classList.remove('active'));
+            }, 5000);
+        }
+
+        // Track the last played MIDI note for dynamic portamento
+        let lastMidiNote = null;
+
+        // Modify handleNoteOn to use dynamic portamento only in glide mode
+        function handleNoteOn(note, time = Tone.now(), octave = 4) {
+            if (!isAudioContextInitialized) {
+                showError("Audio not initialized. Please click anywhere to start.");
+                return;
+            }
+            if (isHushed) return;
+
+            const noteIndex = notes.indexOf(note);
+            const midi = noteIndex + (octave * 12);
+            if (heldNotes.has(midi)) return; // Already held, do not retrigger
+            heldNotes.add(midi);
+            // Clear silence timer when a note is pressed
+            if (silenceTimer) clearTimeout(silenceTimer);
+            
+            // Special case for C5 - always allow it regardless of scale
+            if (note === 'C' && octave === 5) {
+                const key = document.querySelector(`[data-note="${note}"][data-octave="${octave}"]`);
+                if (key) key.classList.add('active');
+                
+                const noteName = note + octave;
+                // Set endTime for previous note (if any)
+                for (let i = noteSequence.length - 1; i >= 0; i--) {
+                    if (noteSequence[i].endTime === null) {
+                        noteSequence[i].endTime = time;
+                        const duration = noteSequence[i].endTime - noteSequence[i].startTime;
+                        if (duration < MIN_NOTE_DURATION) {
+                            noteSequence.splice(i, 1);
+                        }
+                        break;
+                    }
+                }
+                if (isGlideMode) {
+                    // Dynamic portamento
+                    if (lastMidiNote !== null && lastMidiNote !== midi) {
+                        const interval = Math.abs(midi - lastMidiNote);
+                        const maxPortamentoMs = parseInt(document.getElementById('portamentoTime').value, 10);
+                        const baseTime = 0.01; // minimum portamento in seconds
+                        const maxTime = Math.max(0.01, maxPortamentoMs / 1000);
+                        // Scale portamento: 0 for same note, maxTime for 12 semitones or more
+                        const dynamicPortamento = baseTime + Math.min(interval, 12) / 12 * (maxTime - baseTime);
+                        synth.portamento = dynamicPortamento;
+                    }
+                } else {
+                    // No portamento for hover
+                    synth.portamento = 0;
+                }
+                lastMidiNote = midi;
+                synth.triggerAttack(noteName, time, 1);
+                
+                noteSequence.push({
+                    pitch: midi,
+                    velocity: 100,
+                    startTime: time,
+                    endTime: null,
+                    glide: isGlideMode
+                });
+                lastNoteTime = time;
+                updateVisualization();
+                return;
+            }
+
+            // In chromatic mode, allow all notes
+            if (isChromaticMode) {
+                const key = document.querySelector(`[data-note="${note}"][data-octave="${octave}"]`);
+                if (key) key.classList.add('active');
+                
+                const noteName = note + octave;
+                // Set endTime for previous note (if any)
+                for (let i = noteSequence.length - 1; i >= 0; i--) {
+                    if (noteSequence[i].endTime === null) {
+                        noteSequence[i].endTime = time;
+                        const duration = noteSequence[i].endTime - noteSequence[i].startTime;
+                        if (duration < MIN_NOTE_DURATION) {
+                            noteSequence.splice(i, 1);
+                        }
+                        break;
+                    }
+                }
+                if (isGlideMode) {
+                    // Dynamic portamento
+                    if (lastMidiNote !== null && lastMidiNote !== midi) {
+                        const interval = Math.abs(midi - lastMidiNote);
+                        const maxPortamentoMs = parseInt(document.getElementById('portamentoTime').value, 10);
+                        const baseTime = 0.01;
+                        const maxTime = Math.max(0.01, maxPortamentoMs / 1000);
+                        const dynamicPortamento = baseTime + Math.min(interval, 12) / 12 * (maxTime - baseTime);
+                        synth.portamento = dynamicPortamento;
+                    }
+                } else {
+                    synth.portamento = 0;
+                }
+                lastMidiNote = midi;
+                synth.triggerAttack(noteName, time, 1);
+                
+                noteSequence.push({
+                    pitch: midi,
+                    velocity: 100,
+                    startTime: time,
+                    endTime: null,
+                    glide: isGlideMode
+                });
+                lastNoteTime = time;
+                updateVisualization();
+                return;
+            }
+
+            // Regular scale check for other notes
+            if (!scales[activeScale].includes(noteIndex)) {
+                return; // Don't play notes that aren't in the active scale
+            }
+
+            const key = document.querySelector(`[data-note="${note}"][data-octave="${octave}"]`);
+            if (key) key.classList.add('active');
+            
+            const noteName = note + octave;
+            // Set endTime for previous note (if any)
+            for (let i = noteSequence.length - 1; i >= 0; i--) {
+                if (noteSequence[i].endTime === null) {
+                    noteSequence[i].endTime = time;
+                    const duration = noteSequence[i].endTime - noteSequence[i].startTime;
+                    if (duration < MIN_NOTE_DURATION) {
+                        noteSequence.splice(i, 1);
+                    }
+                    break;
+                }
+            }
+            if (isGlideMode) {
+                // Dynamic portamento
+                if (lastMidiNote !== null && lastMidiNote !== midi) {
+                    const interval = Math.abs(midi - lastMidiNote);
+                    const maxPortamentoMs = parseInt(document.getElementById('portamentoTime').value, 10);
+                    const baseTime = 0.01;
+                    const maxTime = Math.max(0.01, maxPortamentoMs / 1000);
+                    const dynamicPortamento = baseTime + Math.min(interval, 12) / 12 * (maxTime - baseTime);
+                    synth.portamento = dynamicPortamento;
+                }
+            } else {
+                // No portamento for hover
+                synth.portamento = 0;
+            }
+            lastMidiNote = midi;
+            synth.triggerAttack(noteName, time, 1);
+            
+            noteSequence.push({
+                pitch: midi,
+                velocity: 100,
+                startTime: time,
+                endTime: null,
+                glide: isGlideMode
+            });
+            lastNoteTime = time;
+            updateVisualization();
+            return;
+        }
+
+        // In handleNoteOff, reset lastMidiNote to null and portamento to slider value
+        function handleNoteOff(note, octave = 4) {
+            const key = document.querySelector(`[data-note="${note}"][data-octave="${octave}"]`);
+            if (key) {
+                key.classList.remove('active');
+                key.classList.remove('playback-active');
+            }
+            
+            const noteName = note + octave;
+            synth.triggerRelease();
+            lastMidiNote = null;
+            // Reset portamento to slider value after note off
+            if (synth) {
+                const portamentoMs = parseInt(document.getElementById('portamentoTime').value, 10);
+                synth.portamento = Math.max(0.01, portamentoMs / 1000);
+            }
+            
+            // Find the most recent note matching this pitch and octave with null endTime
+            const noteIndex = notes.indexOf(note);
+            const midi = noteIndex + (octave * 12);
+            for (let i = noteSequence.length - 1; i >= 0; i--) {
+                if (noteSequence[i].pitch === midi && noteSequence[i].endTime === null) {
+                    noteSequence[i].endTime = Tone.now();
+                    // Check if the note duration is too short
+                    const duration = noteSequence[i].endTime - noteSequence[i].startTime;
+                    if (duration < MIN_NOTE_DURATION) {
+                        noteSequence.splice(i, 1); // Remove the short note
+                    }
+                    break; // Only update the most recent matching note
+                }
+            }
+            updateVisualization();
+            heldNotes.delete(midi);
+            // Only start silence timer if no notes are held
+            if (heldNotes.size === 0) {
+                resetSilenceTimer();
+            }
+        }
+
+        // Event handlers
+        function handleKeyDown(e) {
+            if (e.key === 'Backspace') {
+                c5KeyHeldByKeyboard = true;
+                handleNoteOn('C', Tone.now(), 5); // Pass octave 5 for C5
+                return;
+            }
+            const key = keyboardKeys.indexOf(e.key);
+            if (key !== -1) {
+                handleNoteOn(notes[key]);
+            }
+        }
+
+        function handleKeyUp(e) {
+            if (e.key === 'Backspace') {
+                c5KeyHeldByKeyboard = false;
+                // Only release if not hovered by mouse
+                if (!(currentHoveredNote === 'C' && currentHoveredOctave === 5)) {
+                    handleNoteOff('C', 5); // Pass octave 5 for C5
+                }
+                return;
+            }
+            const key = keyboardKeys.indexOf(e.key);
+            if (key !== -1) {
+                handleNoteOff(notes[key]);
+            }
+        }
+
+        // Add this function after the scales definition and before generateResponse
+        function adjustNoteToScale(pitch) {
+            const noteIndex = pitch % 12;
+            const octave = Math.floor(pitch / 12);
+            
+            // Constrain octave to C4-C5 range (octaves 4-5)
+            const constrainedOctave = Math.max(4, Math.min(5, octave));
+            
+            // If the note is already in the scale, return it with constrained octave
+            if (scales[activeScale].includes(noteIndex)) {
+                return noteIndex + (constrainedOctave * 12);
+            }
+            
+            // Find the closest note in the scale
+            let closestNote = scales[activeScale][0];
+            let minDistance = Math.abs(noteIndex - closestNote);
+            
+            for (const scaleNote of scales[activeScale]) {
+                const distance = Math.abs(noteIndex - scaleNote);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestNote = scaleNote;
+                }
+            }
+            
+            // Return the adjusted pitch with the constrained octave
+            return closestNote + (constrainedOctave * 12);
+        }
+
+        // Add beat detection function
+        function detectBeat(sequence) {
+            if (sequence.length < 4) {
+                updateBeatStatus(null);
+                return null;
+            }
+
+            // Calculate intervals between consecutive notes
+            const intervals = [];
+            for (let i = 1; i < sequence.length; i++) {
+                const interval = sequence[i].startTime - sequence[i-1].startTime;
+                if (interval > 0.1) { // Ignore very short intervals
+                    intervals.push(interval);
+                }
+            }
+
+            console.log('Intervals:', intervals); // Debug log
+
+            // Find the most common interval (within a small tolerance)
+            const tolerance = 0.05; // 50ms tolerance
+            let bestInterval = null;
+            let bestCount = 0;
+
+            for (let i = 0; i < intervals.length; i++) {
+                let count = 1;
+                for (let j = i + 1; j < intervals.length; j++) {
+                    if (Math.abs(intervals[i] - intervals[j]) < tolerance) {
+                        count++;
+                    }
+                }
+                if (count > bestCount) {
+                    bestCount = count;
+                    bestInterval = intervals[i];
+                }
+            }
+
+            // Calculate confidence based on how many intervals match the beat
+            const confidence = bestCount / intervals.length;
+            
+            console.log('Beat detection:', { // Debug log
+                bestInterval,
+                confidence,
+                intervals: intervals.length
+            });
+            
+            // Only return a beat if we have reasonable confidence
+            if (confidence > 0.3 && bestInterval > 0.1 && bestInterval < 2.0) {
+                const beatInfo = {
+                    interval: bestInterval,
+                    confidence: confidence
+                };
+                updateBeatStatus(beatInfo);
+                return beatInfo;
+            }
+            updateBeatStatus(null);
+            return null;
+        }
+
+        // Modify generateResponse to include beat detection and feedback
+        async function generateResponse() {
+            // Release any lingering notes before starting new response
+            releaseAllNotes();
+            
+            if (!isModelLoaded) {
+                showError("Model not loaded yet...");
+                return;
+            }
+            if (noteSequence.length === 0) {
+                showError("Play some notes first!");
+                return;
+            }
+            const generateButton = document.getElementById('generateResponse');
+            generateButton.disabled = true;
+            updateStatus("Generating response...", "loading");
+
+            // Clear previous response sequence
+            responseSequence = [];
+            
+            // Save the current input for comparison
+            lastInputSequence = [...noteSequence];
+            updateVisualization();
+
+            const responseMode = document.getElementById('responseMode').value;
+            let steps;
+            const matchInputLength = document.getElementById('matchInputLength').checked;
+            const minSteps = 8;
+            const maxSteps = 128;
+            
+            if (matchInputLength && noteSequence.length > 0) {
+                const inputStart = noteSequence[0]?.startTime || 0;
+                const inputEnd = noteSequence[noteSequence.length - 1]?.endTime || 0;
+                const inputDuration = inputEnd - inputStart;
+                const qpm = 120;
+                const secondsPerQuarter = 60 / qpm;
+                const stepsPerQuarter = 4;
+                steps = Math.round((inputDuration / secondsPerQuarter) * stepsPerQuarter);
+                steps = Math.max(minSteps, Math.min(maxSteps, steps));
+                document.getElementById('stepsSlider').value = steps;
+                document.getElementById('stepsValue').textContent = steps;
+            } else {
+                steps = parseInt(document.getElementById('stepsSlider').value, 10);
+            }
+
+            // Detect beat from input sequence
+            const beatInfo = detectBeat(noteSequence);
+            if (beatInfo) {
+                detectedBeat = beatInfo.interval;
+                beatConfidence = beatInfo.confidence;
+                updateStatus(`Beat detected: ${Math.round(beatInfo.interval * 1000)}ms (${Math.round(beatInfo.confidence * 100)}% confidence)`, "success");
+            } else {
+                detectedBeat = null;
+                beatConfidence = 0;
+            }
+
+            if (responseMode === 'replica') {  
+                responseSequence = noteSequence.map(note => ({ ...note }));
+                if (persistentBeatActive && detectedBeat && beatConfidence > 0.5) {
+                    await playSequenceSyncedToBeat(responseSequence);
+                } else {
+                    await playSequence(responseSequence);
+                }
+                updateStatus("Replica response played.", "success");
+            } else if (responseMode === 'reverse') {
+                const phraseStart = noteSequence[0]?.startTime || 0;
+                const phraseEnd = noteSequence[noteSequence.length - 1]?.endTime || 0;
+                const totalDuration = phraseEnd - phraseStart;
+                
+                responseSequence = noteSequence.map(note => ({
+                    ...note,
+                    startTime: totalDuration - (note.endTime - phraseStart),
+                    endTime:   totalDuration - (note.startTime - phraseStart)
+                })).reverse();
+                
+                if (persistentBeatActive && detectedBeat && beatConfidence > 0.5) {
+                    await playSequenceSyncedToBeat(responseSequence);
+                } else {
+                    await playSequence(responseSequence);
+                }
+                updateStatus("Reverse response played.", "success");
+            } else {
+                try {
+                    let rawNoteSequence = {
+                        notes: noteSequence,
+                        totalTime: noteSequence.length > 0 ? noteSequence[noteSequence.length - 1].endTime : 0,
+                        ticksPerQuarter: 220,
+                        tempos: [{ time: 0, qpm: 120 }],
+                        timeSignatures: [{ time: 0, numerator: 4, denominator: 4 }]
+                    };
+
+                    // If we detected a beat, adjust the tempo to match
+                    if (detectedBeat) {
+                        const bpm = Math.round(60 / detectedBeat);
+                        rawNoteSequence.tempos = [{ time: 0, qpm: bpm }];
+                    }
+
+                    const qns = mm.sequences.quantizeNoteSequence(rawNoteSequence, 4);
+                    const contQns = await rnn.continueSequence(qns, steps, currentTemperature);
+                    const contRaw = mm.sequences.unquantizeSequence(contQns);
+                    
+                    responseSequence = (contRaw.notes || []).map(note => ({
+                        ...note,
+                        pitch: adjustNoteToScale(note.pitch),
+                        glide: false
+                    }));
+
+                    // Add beat feedback if we detected a beat
+                    if (persistentBeatActive && detectedBeat && beatConfidence > 0.5) {
+                        await playSequenceSyncedToBeat(responseSequence);
+                    } else {
+                        await playSequence(responseSequence);
+                    }
+                    updateStatus("Playing Magenta response...", "success");
+                } catch (error) {
+                    showError("Error generating response: " + error.message);
+                }
+            }
+
+            // Buffer management
+            if (bufferMode === 'append') {
+                noteSequence = noteSequence.concat(responseSequence);
+            } else {
+                noteSequence = [];
+            }
+            updateVisualization();
+            generateButton.disabled = false;
+        }
+
+        // Modify playSequenceWithBeat to use more distinct beat sound
+        async function playSequenceWithBeat(sequence) {
+            if (!sequence || sequence.length === 0) return;
+            
+            const now = Tone.now();
+            const startTime = sequence[0]?.startTime || 0;
+            
+            // Play the sequence normally
+            await playSequence(sequence);
+
+            // Add beat feedback
+            if (detectedBeat && beatConfidence > 0.5) {
+                const sequenceEnd = sequence[sequence.length - 1].endTime || (sequence[sequence.length - 1].startTime + 0.5);
+                const duration = sequenceEnd - startTime;
+                
+                // Play beat for the duration of the sequence
+                let currentTime = startTime;
+                while (currentTime < sequenceEnd) {
+                    const timeToPlay = (currentTime - startTime) * 1000;
+                    setTimeout(() => {
+                        if (!isHushed) {
+                            // Trigger a more distinct beat sound
+                            beatSynth.triggerAttackRelease("16n", now + timeToPlay/1000);
+                        }
+                    }, timeToPlay);
+                    currentTime += detectedBeat;
+                }
+            }
+        }
+
+        function updateStatus(message, type = "default") {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = message;
+            statusElement.className = 'status ' + type;
+        }
+
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            setTimeout(() => {
+                errorElement.style.display = 'none';
+            }, 5000);
+        }
+
+        // Initialize
+        async function initialize() {
+            await initializeAudio();
+            await loadModel();
+            Tone.Transport.start();
+        }
+
+        function tryInitAudio() {
+            if (!isAudioContextInitialized) {
+                initialize();
+            }
+            // Remove listeners after first call
+            document.removeEventListener('click', tryInitAudio);
+            document.removeEventListener('keydown', tryInitAudio);
+            document.removeEventListener('touchstart', tryInitAudio);
+        }
+        document.addEventListener('click', tryInitAudio);
+        document.addEventListener('keydown', tryInitAudio);
+        document.addEventListener('touchstart', tryInitAudio);
+
+        // Add waveform change handler
+        document.getElementById('waveform').addEventListener('change', (e) => {
+            if (synth) {
+                synth.set({
+                    oscillator: {
+                        type: e.target.value
+                    }
+                });
+            }
+        });
+
+        document.getElementById('stepsSlider').addEventListener('input', function() {
+            document.getElementById('stepsValue').textContent = this.value;
+        });
+        document.getElementById('tempSlider').addEventListener('input', function() {
+            currentTemperature = parseFloat(this.value);
+            document.getElementById('tempValue').textContent = currentTemperature.toFixed(2);
+        });
+
+        document.getElementById('clearCall').addEventListener('click', () => {
+            noteSequence = [];
+            lastInputSequence = [];
+            updateVisualization();
+        });
+
+        // Initialize with default scale
+        updateActiveNotes('major');
+
+        // Add drone control handlers
+        document.getElementById('droneToggle').addEventListener('change', (e) => {
+            if (!isAudioContextInitialized) {
+                showError("Audio not initialized. Please click anywhere to start.");
+                e.target.checked = false;
+                return;
+            }
+            if (isHushed) {
+                e.target.checked = false;
+                return;
+            }
+            isDroneActive = e.target.checked;
+            previousDroneState = isDroneActive; // Update previous state
+            if (isDroneActive) {
+                droneSynth.triggerAttack('C4');
+            } else {
+                droneSynth.triggerRelease();
+            }
+        });
+
+        document.getElementById('droneVolume').addEventListener('input', (e) => {
+            const volume = e.target.value;
+            previousDroneVolume = volume; // Update previous volume
+            document.getElementById('droneVolumeValue').textContent = volume + '%';
+            if (droneSynth) {
+                droneSynth.volume.value = Tone.gainToDb(volume / 100);
+            }
+        });
+
+        // Add drone waveform control
+        document.getElementById('droneWaveform').addEventListener('change', (e) => {
+            if (droneSynth) {
+                droneSynth.oscillator.type = e.target.value;
+                // If drone is active, restart it with new waveform
+                if (isDroneActive) {
+                    droneSynth.triggerRelease();
+                    droneSynth.triggerAttack('C4');
+                }
+            }
+        });
+
+        // Modify cleanup to include drone
+        window.addEventListener('beforeunload', () => {
+            releaseAllNotes();
+            if (droneSynth) {
+                droneSynth.triggerRelease();
+            }
+        });
+
+        // Hush button logic
+        const hushButton = document.getElementById('hushButton');
+        function setHushState(hushed) {
+            isHushed = hushed;
+            console.log('Hush state changed:', isHushed);
+            if (isHushed) {
+                previousDroneState = isDroneActive;
+                previousDroneVolume = document.getElementById('droneVolume').value;
+                releaseAllNotes();
+                if (droneSynth) droneSynth.triggerRelease();
+                if (beatSynth) beatSynth.triggerRelease();
+                stopPersistentBeatLoop();
+                hushButton.textContent = 'Unhush';
+                hushButton.style.background = '#1565c0';
+                const droneToggle = document.getElementById('droneToggle');
+                if (droneToggle) droneToggle.disabled = true;
+            } else {
+                hushButton.textContent = 'Hush';
+                hushButton.style.background = '#c62828';
+                const droneToggle = document.getElementById('droneToggle');
+                if (droneToggle) {
+                    droneToggle.disabled = false;
+                    if (previousDroneState) {
+                        droneToggle.checked = true;
+                        isDroneActive = true;
+                        droneSynth.triggerAttack('C4');
+                        document.getElementById('droneVolume').value = previousDroneVolume;
+                        document.getElementById('droneVolumeValue').textContent = previousDroneVolume + '%';
+                        droneSynth.volume.value = Tone.gainToDb(previousDroneVolume / 100);
+                    }
+                }
+            }
+        }
+
+        // Click handler for hush button
+        hushButton.addEventListener('click', () => {
+            setHushState(!isHushed);
+        });
+
+        // Space bar toggles hush
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !e.repeat) {
+                e.preventDefault(); // Prevent page scroll
+                setHushState(!isHushed);
+            }
+        });
+
+        // Add CSS for playback highlighting
+        document.head.insertAdjacentHTML('beforeend', `<style>.key.playback-active { background-color: #ffd580 !important; border-color: #ff9800 !important; }</style>`);
+
+        // Add portamento time control handler with improved feedback
+        document.getElementById('portamentoTime').addEventListener('input', (e) => {
+            const portamentoTime = e.target.value;
+            document.getElementById('portamentoTimeValue').textContent = portamentoTime + 'ms';
+            if (synth) {
+                // Convert ms to seconds and ensure minimum value
+                const portamentoSeconds = Math.max(0.01, portamentoTime / 1000);
+                synth.set({
+                    portamento: portamentoSeconds
+                });
+                console.log('Portamento time set to:', portamentoSeconds, 'seconds');
+                
+                // Provide visual feedback
+                const statusElement = document.getElementById('status');
+                statusElement.textContent = `Portamento set to ${portamentoTime}ms`;
+                statusElement.className = 'status success';
+                setTimeout(() => {
+                    statusElement.textContent = '';
+                    statusElement.className = 'status';
+                }, 2000);
+            }
+        });
+
+        // Add mousemove glide support for keyboard
+        keyboard.addEventListener('mousemove', function(e) {
+            if (!isMouseDown) return;
+            const target = e.target.closest('.key');
+            if (!target) return;
+            const note = target.dataset.note;
+            const octave = target.dataset.octave ? parseInt(target.dataset.octave) : 4;
+            // Only trigger if this is a different key than the current hovered
+            if (target !== currentHoveredKey) {
+                // Release previous note
+                if (currentHoveredKey && currentHoveredNote && currentHoveredOctave) {
+                    handleNoteOff(currentHoveredNote, currentHoveredOctave);
+                }
+                currentHoveredKey = target;
+                currentHoveredNote = note;
+                currentHoveredOctave = octave;
+                // For glide, always trigger the new note, even if it was just released
+                handleNoteOn(note, Tone.now(), octave);
+            }
+        });
+
+        // Release note when mouse leaves the entire keyboard area
+        keyboard.addEventListener('mouseleave', function(e) {
+            if (currentHoveredNote && currentHoveredOctave) {
+                handleNoteOff(currentHoveredNote, currentHoveredOctave);
+                currentHoveredKey = null;
+                currentHoveredNote = null;
+                currentHoveredOctave = null;
+            }
+        });
+
+        // Add copy button functionality
+        document.querySelectorAll('.copy-button').forEach(button => {
+            button.addEventListener('click', async () => {
+                const targetId = button.dataset.target;
+                const content = document.getElementById(targetId).textContent;
+                
+                try {
+                    await navigator.clipboard.writeText(content);
+                    button.textContent = 'Copied!';
+                    button.classList.add('copied');
+                    
+                    // Reset button after 2 seconds
+                    setTimeout(() => {
+                        button.textContent = 'Copy';
+                        button.classList.remove('copied');
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                    button.textContent = 'Failed to copy';
+                    setTimeout(() => {
+                        button.textContent = 'Copy';
+                    }, 2000);
+                }
+            });
+        });
+
+        // Add beat volume control handler with immediate feedback
+        document.getElementById('beatVolume').addEventListener('input', (e) => {
+            const volume = e.target.value;
+            document.getElementById('beatVolumeValue').textContent = volume + 'dB';
+            if (beatSynth) {
+                beatSynth.volume.value = parseInt(volume);
+                // Provide immediate feedback with more distinct sound
+                if (!isHushed) {
+                    beatSynth.triggerAttackRelease("16n");
+                }
+            }
+        });
+
+        // Update beat status display
+        function updateBeatStatus(beatInfo) {
+            const beatStatus = document.getElementById('beatStatus');
+            if (beatInfo) {
+                const bpm = Math.round(60 / beatInfo.interval);
+                beatStatus.textContent = `Beat: ${bpm} BPM (${Math.round(beatInfo.confidence * 100)}% confidence)`;
+                beatStatus.style.color = beatInfo.confidence > 0.5 ? '#2e7d32' : '#f57c00';
+                if (beatInfo.confidence >= 0.6) {
+                    lockedBeatInterval = beatInfo.interval;
+                    startPersistentBeatLoop(lockedBeatInterval);
+                }
+            } else {
+                beatStatus.textContent = 'No beat detected';
+                beatStatus.style.color = '#666';
+                // Do NOT stop the persistent beat if one is already locked in
+            }
+        }
+
+        function startPersistentBeatLoop(interval) {
+            stopPersistentBeatLoop();
+            persistentBeatActive = true;
+            function playBeat() {
+                if (!persistentBeatActive || isHushed) return;
+                beatSynth.triggerAttackRelease("16n");
+                persistentBeatTimer = setTimeout(playBeat, interval * 1000);
+            }
+            playBeat();
+        }
+
+        function stopPersistentBeatLoop() {
+            persistentBeatActive = false;
+            if (persistentBeatTimer) {
+                clearTimeout(persistentBeatTimer);
+                persistentBeatTimer = null;
+            }
+            lockedBeatInterval = null;
+        }
+
+        // Improved: Sync response playback to start exactly on the next beat
+        async function playSequenceSyncedToBeat(sequence) {
+            if (!sequence || sequence.length === 0 || !persistentBeatActive || !detectedBeat) {
+                await playSequence(sequence);
+                return;
+            }
+            releaseAllNotes();
+            document.querySelectorAll('.key.playback-active').forEach(key => key.classList.remove('playback-active'));
+            document.querySelectorAll('.key.active').forEach(key => key.classList.remove('active'));
+            const now = Tone.now();
+            const beatInterval = detectedBeat;
+            // Find the next beat time after now
+            const timeSinceLastBeat = now % beatInterval;
+            let nextBeatTime = now + (beatInterval - timeSinceLastBeat);
+            // Quantize all notes to the beat grid
+            for (let i = 0; i < sequence.length; i++) {
+                const note = sequence[i];
+                const midiPitch = note.pitch;
+                const noteName = notes[midiPitch % 12];
+                const octave = Math.floor(midiPitch / 12);
+                const fullNoteName = noteName + octave;
+                // Each note starts on a beat
+                const noteStartTime = nextBeatTime + i * beatInterval;
+                setTimeout(() => {
+                    if (note.glide) {
+                        let lastPitch = (i > 0) ? sequence[i - 1].pitch : null;
+                        if (lastPitch !== null && lastPitch !== midiPitch) {
+                            const interval = Math.abs(midiPitch - lastPitch);
+                            const maxPortamentoMs = parseInt(document.getElementById('portamentoTime').value, 10);
+                            const baseTime = 0.01;
+                            const maxTime = Math.max(0.01, maxPortamentoMs / 1000);
+                            const dynamicPortamento = baseTime + Math.min(interval, 12) / 12 * (maxTime - baseTime);
+                            synth.portamento = dynamicPortamento;
+                        }
+                    } else {
+                        synth.portamento = 0;
+                    }
+                    synth.triggerAttack(fullNoteName);
+                    const keyElem = document.querySelector(
+                        `[data-note="${noteName}"][data-octave="${octave}"]`
+                    );
+                    if (keyElem) {
+                        keyElem.classList.add('playback-active');
+                        keyElem.classList.add('active');
+                    }
+                }, (noteStartTime - now) * 1000);
+                setTimeout(() => {
+                    synth.triggerRelease();
+                    const keyElem = document.querySelector(
+                        `[data-note="${noteName}"][data-octave="${octave}"]`
+                    );
+                    if (keyElem) {
+                        keyElem.classList.remove('playback-active');
+                        keyElem.classList.remove('active');
+                    }
+                }, (noteStartTime - now + 0.3) * 1000);
+            }
+            // Release after last note
+            setTimeout(() => {
+                synth.triggerRelease();
+                document.querySelectorAll('.key.playback-active').forEach(key => key.classList.remove('playback-active'));
+                document.querySelectorAll('.key.active').forEach(key => key.classList.remove('active'));
+            }, (nextBeatTime - now + sequence.length * beatInterval + 0.5) * 1000);
+        }
+    </script>
+</body>
+</html>
