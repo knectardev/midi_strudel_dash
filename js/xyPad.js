@@ -21,6 +21,7 @@ class XYPad {
 
         this.mainController = mainController; // To access global tonic/scale and audioEngine
         this.audioEngine = null; // Will be set later via mainController or a direct setter
+        this.strudelCoder = null; // Will be set to capture notes for Strudel code generation
 
         this.currentScaleNotes = [];
         this.isDragging = false;
@@ -36,6 +37,11 @@ class XYPad {
     setAudioEngine(audioEngineInstance) {
         this.audioEngine = audioEngineInstance;
         console.log("XYPad: AudioEngine instance received.");
+    }
+
+    setStrudelCoder(strudelCoderInstance) {
+        this.strudelCoder = strudelCoderInstance;
+        console.log("XYPad: StrudelCoder instance received for note capture.");
     }
 
     updateMusicalContext() {
@@ -162,10 +168,17 @@ class XYPad {
 
             this.lastPlayedNote = { midi: currentMidiNote, velocity: velocity };
 
+            // Play the note through audio engine
             if (this.audioEngine && this.audioEngine.isInitialized) {
                 this.audioEngine.playSynthNote(currentMidiNote, velocity);
             } else {
                 console.log(`XYPad: Play Note (AudioEngine NOT READY): MIDI ${currentMidiNote}, Velocity: ${velocity}`);
+            }
+
+            // Capture the note in Strudel Coder for code generation
+            if (this.strudelCoder) {
+                this.strudelCoder.captureNote(currentMidiNote, velocity, 'XY Pad (Mouse)', 'xypad-mouse');
+                console.log(`XYPad: Note captured for Strudel: MIDI ${currentMidiNote}, Velocity: ${velocity}`);
             }
             
             const noteName = this.mainController.getNoteName(currentMidiNote) || '--';
@@ -203,11 +216,20 @@ class XYPad {
 
             if (this.lastPlayedNote === null || this.lastPlayedNote.midi !== currentMidiNote || this.lastPlayedNote.velocity !== velocity) {
                 this.lastPlayedNote = { midi: currentMidiNote, velocity: velocity };
+                
+                // Play the note through audio engine
                 if (this.audioEngine && this.audioEngine.isInitialized) {
                     this.audioEngine.playSynthNote(currentMidiNote, velocity);
                 } else {
                     console.log(`XYPad (MIDI): Play Note (AudioEngine NOT READY): MIDI ${currentMidiNote}, Velocity: ${velocity}`);
                 }
+
+                // Capture the note in Strudel Coder for code generation
+                if (this.strudelCoder) {
+                    this.strudelCoder.captureNote(currentMidiNote, velocity, 'XY Pad (MIDI CC)', 'xypad-midi');
+                    console.log(`XYPad (MIDI): Note captured for Strudel: MIDI ${currentMidiNote}, Velocity: ${velocity}`);
+                }
+
                  const noteName = this.mainController.getNoteName(currentMidiNote) || '--';
                  const freq = this._midiToFreq(currentMidiNote).toFixed(2);
                  if(this.noteDisplay) this.noteDisplay.textContent = noteName;

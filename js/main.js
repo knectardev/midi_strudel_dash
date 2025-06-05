@@ -411,6 +411,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.warn("StrudelCoder or MidiHandler not available for device update.");
             }
 
+            // Connect XY Pad with Strudel Coder for note capture
+            if (xyPadInstance && strudelCoderInstance) {
+                xyPadInstance.setStrudelCoder(strudelCoderInstance);
+                console.log("XY Pad connected to Strudel Coder for note capture.");
+            } else {
+                console.warn("XY Pad or Strudel Coder not available for connection.");
+            }
+
             // Set up MIDI note capture for StrudelCoder
             if (midiHandler.isAvailable()) {
                 midiHandler.setNoteOnCallback((note, velocity, channel, deviceName, deviceId) => {
