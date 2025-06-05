@@ -3,6 +3,8 @@
 ## Overview
 A comprehensive web-based musical interface application that provides real-time audio synthesis, visual feedback, and seamless MIDI-to-Strudel code conversion. Built with modern vanilla JavaScript and Web Audio API, the application features a modular architecture with dual MIDI device support and advanced Strudel REPL integration for live coding.
 
+Demo: https://midi-strudel-dash.vercel.app/ 
+
 ## Core Features
 
 ### 1. Advanced XY Pad Controller
