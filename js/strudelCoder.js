@@ -9,9 +9,12 @@ class StrudelCoder {
         // Get references to HTML elements
         this.deviceSelector = container.querySelector('#strudelDeviceSelector');
         this.notationTypeToggle = container.querySelector('#notationTypeToggle');
-        this.soundTypeSelector = container.querySelector('#soundTypeSelector');
+        this.soundTypeInput = container.querySelector('#soundTypeInput');
+        this.soundAutocompleteResults = container.querySelector('#soundAutocompleteResults');
         this.bpmSlider = container.querySelector('#strudelBpmSlider');
         this.bpmValueDisplay = container.querySelector('#strudelBpmValue');
+        this.quantizeSlider = container.querySelector('#strudelQuantizeSlider');
+        this.quantizeValueDisplay = container.querySelector('#strudelQuantizeValue');
         this.clearButton = container.querySelector('#strudelClear');
         this.capturedNotesCountDisplay = container.querySelector('#strudelCapturedNotesCount');
         this.capturingFromDeviceDisplay = container.querySelector('#strudelCapturingFromDevice');
@@ -27,6 +30,42 @@ class StrudelCoder {
         this.selectedSound = 'piano'; // Default sound
         this.bpm = 20; // Default BPM value
         this.chordTimeWindow = 100; // milliseconds - notes within this window are considered simultaneous
+
+        // Autocomplete properties
+        this.currentAutocompleteIndex = -1;
+        this.availableSounds = [
+            "piano", "brown", "bytebeat", "crackle",
+            "gm_accordion(7)", "gm_acoustic_bass(4)", "gm_acoustic_guitar_nylon(9)", "gm_acoustic_guitar_steel(10)",
+            "gm_agogo(6)", "gm_alto_sax(6)", "gm_applause(15)", "gm_bagpipe(1)", "gm_bandoneon(10)",
+            "gm_banjo(6)", "gm_baritone_sax(6)", "gm_bassoon(4)", "gm_bird_tweet(7)", "gm_blown_bottle(5)",
+            "gm_brass_section(5)", "gm_breath_noise(8)", "gm_celesta(6)", "gm_cello(6)", "gm_choir_aahs(9)",
+            "gm_church_organ(5)", "gm_clarinet(6)", "gm_clavinet(4)", "gm_contrabass(3)", "gm_distortion_guitar(7)",
+            "gm_drawbar_organ(7)", "gm_dulcimer(5)", "gm_electric_bass_finger(4)", "gm_electric_bass_pick(5)",
+            "gm_electric_guitar_clean(9)", "gm_electric_guitar_jazz(9)", "gm_electric_guitar_muted(10)",
+            "gm_english_horn(4)", "gm_epiano1(11)", "gm_epiano2(9)", "gm_fiddle(9)", "gm_flute(5)",
+            "gm_french_horn(5)", "gm_fretless_bass(2)", "gm_fx_atmosphere(13)", "gm_fx_brightness(12)",
+            "gm_fx_crystal(10)", "gm_fx_echoes(10)", "gm_fx_goblins(9)", "gm_fx_rain(6)", "gm_fx_sci_fi(9)",
+            "gm_fx_soundtrack(5)", "gm_glockenspiel(5)", "gm_guitar_fret_noise(8)", "gm_guitar_harmonics(3)",
+            "gm_gunshot(12)", "gm_harmonica(6)", "gm_harpsichord(8)", "gm_helicopter(16)", "gm_kalimba(5)",
+            "gm_koto(9)", "gm_lead_1_square(3)", "gm_lead_2_sawtooth(7)", "gm_lead_3_calliope(7)",
+            "gm_lead_4_chiff(6)", "gm_lead_5_charang(10)", "gm_lead_6_voice(6)", "gm_lead_7_fifths(5)",
+            "gm_lead_8_bass_lead(5)", "gm_marimba(7)", "gm_melodic_tom(9)", "gm_music_box(5)",
+            "gm_muted_trumpet(5)", "gm_oboe(5)", "gm_ocarina(4)", "gm_orchestra_hit(5)", "gm_orchestral_harp(5)",
+            "gm_overdriven_guitar(10)", "gm_pad_bowed(5)", "gm_pad_choir(6)", "gm_pad_halo(8)",
+            "gm_pad_metallic(7)", "gm_pad_new_age(12)", "gm_pad_poly(7)", "gm_pad_sweep(7)", "gm_pad_warm(7)",
+            "gm_pan_flute(8)", "gm_percussive_organ(6)", "gm_piano(32)", "gm_piccolo(5)", "gm_pizzicato_strings(6)",
+            "gm_recorder(5)", "gm_reed_organ(8)", "gm_reverse_cymbal(9)", "gm_rock_organ(5)", "gm_seashore(16)",
+            "gm_shakuhachi(5)", "gm_shamisen(7)", "gm_shanai(5)", "gm_sitar(7)", "gm_slap_bass_1(4)",
+            "gm_slap_bass_2(4)", "gm_soprano_sax(5)", "gm_steel_drums(6)", "gm_string_ensemble_1(11)",
+            "gm_string_ensemble_2(7)", "gm_synth_bass_1(10)", "gm_synth_bass_2(7)", "gm_synth_brass_1(4)",
+            "gm_synth_brass_2(7)", "gm_synth_choir(5)", "gm_synth_drum(7)", "gm_synth_strings_1(7)",
+            "gm_synth_strings_2(4)", "gm_taiko_drum(10)", "gm_telephone(10)", "gm_tenor_sax(4)", "gm_timpani(6)",
+            "gm_tinkle_bell(1)", "gm_tremolo_strings(6)", "gm_trombone(5)", "gm_trumpet(4)", "gm_tuba(4)",
+            "gm_tubular_bells(6)", "gm_vibraphone(6)", "gm_viola(5)", "gm_violin(9)", "gm_voice_oohs(6)",
+            "gm_whistle(4)", "gm_woodblock(9)", "gm_xylophone(6)", "pink", "pulse", "sawtooth", "sine",
+            "square", "supersaw", "triangle", "white", "z_noise", "z_sawtooth", "z_sine", "z_square",
+            "z_tan", "z_triangle", "zzfx"
+        ];
 
         // MIDI to note name mapping (from legacy)
         this.midiToNoteName = {
@@ -70,14 +109,67 @@ class StrudelCoder {
             });
         }
 
-        if (this.soundTypeSelector) {
-            this.soundTypeSelector.addEventListener('change', () => {
-                this.selectedSound = this.soundTypeSelector.value;
-                this.updateStatus();
-                // Automatically inject code when sound type changes
-                if (this.capturedNotes.length > 0) {
-                    const code = this.getNotation();
-                    this.injectIntoStrudelEditor(code);
+        if (this.soundTypeInput) {
+            this.soundTypeInput.addEventListener('input', () => {
+                const inputValue = this.soundTypeInput.value.toLowerCase();
+                const filteredSounds = this.availableSounds.filter(sound => 
+                    sound.toLowerCase().includes(inputValue));
+                
+                if (inputValue.length > 0 && filteredSounds.length > 0) {
+                    this.displayAutocompleteResults(filteredSounds);
+                    this.soundAutocompleteResults.classList.add('show');
+                } else {
+                    this.soundAutocompleteResults.classList.remove('show');
+                }
+                this.currentAutocompleteIndex = -1;
+            });
+
+            this.soundTypeInput.addEventListener('keydown', (event) => {
+                const items = this.soundAutocompleteResults.querySelectorAll('.autocomplete-item');
+                
+                if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    this.currentAutocompleteIndex = Math.min(this.currentAutocompleteIndex + 1, items.length - 1);
+                    this.highlightAutocompleteItem(items);
+                } else if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    this.currentAutocompleteIndex = Math.max(this.currentAutocompleteIndex - 1, -1);
+                    this.highlightAutocompleteItem(items);
+                } else if (event.key === 'Enter') {
+                    event.preventDefault();
+                    if (this.currentAutocompleteIndex >= 0 && items[this.currentAutocompleteIndex]) {
+                        this.selectSound(items[this.currentAutocompleteIndex].textContent);
+                    }
+                } else if (event.key === 'Escape') {
+                    this.soundAutocompleteResults.classList.remove('show');
+                    this.currentAutocompleteIndex = -1;
+                }
+            });
+
+            this.soundTypeInput.addEventListener('blur', () => {
+                // Delay hiding to allow clicking on items
+                setTimeout(() => {
+                    this.soundAutocompleteResults.classList.remove('show');
+                }, 150);
+            });
+
+            this.soundTypeInput.addEventListener('focus', () => {
+                if (this.soundTypeInput.value.length > 0) {
+                    const inputValue = this.soundTypeInput.value.toLowerCase();
+                    const filteredSounds = this.availableSounds.filter(sound => 
+                        sound.toLowerCase().includes(inputValue));
+                    if (filteredSounds.length > 0) {
+                        this.displayAutocompleteResults(filteredSounds);
+                        this.soundAutocompleteResults.classList.add('show');
+                    }
+                }
+            });
+        }
+
+        if (this.soundAutocompleteResults) {
+            this.soundAutocompleteResults.addEventListener('click', (event) => {
+                if (event.target.classList.contains('autocomplete-item')) {
+                    this.selectSound(event.target.textContent);
                 }
             });
         }
@@ -91,6 +183,20 @@ class StrudelCoder {
                 // Automatically inject code when BPM changes
                 const code = this.getNotation();
                 this.injectIntoStrudelEditor(code);
+            });
+        }
+
+        if (this.quantizeSlider) {
+            this.quantizeSlider.addEventListener('input', () => {
+                this.quantizeResolution = parseInt(this.quantizeSlider.value, 10);
+                if (this.quantizeValueDisplay) {
+                    this.quantizeValueDisplay.textContent = `${this.quantizeResolution}ms`;
+                }
+                // Automatically inject code when quantization changes (reprocess existing notes)
+                if (this.capturedNotes.length > 0) {
+                    const code = this.getNotation();
+                    this.injectIntoStrudelEditor(code);
+                }
             });
         }
 
@@ -975,6 +1081,49 @@ class StrudelCoder {
         } catch (error) {
             console.error('Error in triggerStrudelEditorUpdate:', error);
             return false;
+        }
+    }
+
+    displayAutocompleteResults(results) {
+        if (!this.soundAutocompleteResults) return;
+
+        // Clear existing results
+        this.soundAutocompleteResults.innerHTML = '';
+
+        // Populate new results
+        results.forEach(result => {
+            const item = document.createElement('div');
+            item.className = 'autocomplete-item';
+            item.textContent = result;
+            this.soundAutocompleteResults.appendChild(item);
+        });
+    }
+
+    highlightAutocompleteItem(items) {
+        if (!this.soundAutocompleteResults) return;
+
+        // Remove existing highlights
+        items.forEach(item => item.classList.remove('highlighted'));
+
+        // Highlight the current item
+        if (this.currentAutocompleteIndex >= 0 && this.currentAutocompleteIndex < items.length) {
+            items[this.currentAutocompleteIndex].classList.add('highlighted');
+        }
+    }
+
+    selectSound(sound) {
+        if (this.soundTypeInput) {
+            this.soundTypeInput.value = sound;
+            this.selectedSound = sound;
+            this.soundAutocompleteResults.classList.remove('show');
+            this.currentAutocompleteIndex = -1;
+            
+            this.updateStatus();
+            // Automatically inject code when sound type changes
+            if (this.capturedNotes.length > 0) {
+                const code = this.getNotation();
+                this.injectIntoStrudelEditor(code);
+            }
         }
     }
 } 
