@@ -337,14 +337,14 @@ class StrudelCoder {
             chordNote.velocity = Math.max(chordNote.velocity, velocity);
         } else {
             // Regular single note
-            this.capturedNotes.push({
-                midi: note,
-                name: noteName,
-                velocity: velocity,
-                time: relativeTime,
+        this.capturedNotes.push({
+            midi: note,
+            name: noteName,
+            velocity: velocity,
+            time: relativeTime,
                 deviceName: deviceName,
                 isChord: false
-            });
+        });
         }
 
         if (this.capturedNotes.length > this.maxNotes) {
@@ -795,31 +795,6 @@ class StrudelCoder {
                 } catch (e) {
                     console.log(`Failed to dispatch ${eventName} event:`, e);
                 }
-            }
-
-            // Method 6: Try setting innerHTML/textContent directly on the editor
-            console.log('=== TRYING DIRECT CONTENT SETTING ===');
-            try {
-                if (strudelEditor.textContent !== undefined) {
-                    const originalContent = strudelEditor.textContent;
-                    strudelEditor.textContent = code;
-                    console.log('Set textContent directly on strudel-editor');
-                    
-                    // Try to trigger change events
-                    strudelEditor.dispatchEvent(new Event('input', { bubbles: true }));
-                    strudelEditor.dispatchEvent(new Event('change', { bubbles: true }));
-                    
-                    // If it worked, show success
-                    if (strudelEditor.textContent === code) {
-                        this.showFeedback('Code injected into Strudel REPL!', 'success');
-                        return;
-                    } else {
-                        console.log('textContent was set but reverted');
-                        strudelEditor.textContent = originalContent; // restore
-                    }
-                }
-            } catch (e) {
-                console.log('Failed to set textContent:', e);
             }
 
             console.log('=== NO COMPATIBLE INTERFACE FOUND ===');
