@@ -503,10 +503,33 @@ class StrudelCoder {
             }).join(' \n');
             
             return `${cpmLine}\n//\nnote(\`${formattedChords}\`).sound("${transformedSound}")\n// \n//`;
+            } else {
+        // Original format for single chords or no chords
+        // Check if the sequence is too long and needs line breaks
+        const maxNotesPerLine = 10;
+        
+        if (seq.length > maxNotesPerLine) {
+            // Break into chunks of maxNotesPerLine
+            const chunks = [];
+            for (let i = 0; i < seq.length; i += maxNotesPerLine) {
+                chunks.push(seq.slice(i, i + maxNotesPerLine).join(' '));
+            }
+            
+            // Format with proper indentation (first line no indent, subsequent lines indented)
+            const formattedChunks = chunks.map((chunk, index) => {
+                if (index === 0) {
+                    return chunk;
+                } else {
+                    return `     ${chunk}`;
+                }
+            }).join(' \n');
+            
+            return `${cpmLine}\n//\nnote(\`${formattedChunks}\`).sound("${transformedSound}")\n// \n//`;
         } else {
-            // Original format for single chords or no chords
+            // Short sequence, use original single-line format
             return `${cpmLine}\n//\nnote("${seq.join(" ")}").sound("${transformedSound}")\n// \n//`;
         }
+    }
     }
 
     /**

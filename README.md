@@ -1,253 +1,269 @@
-# MIDI Musical Interface - Requirements Specification
+# MIDI Strudel Interface - Musical Live Coding Platform
 
 ## Overview
-A comprehensive web-based musical interface application that provides real-time audio synthesis, visual feedback, and seamless MIDI-to-Strudel code conversion. Built with modern vanilla JavaScript and Web Audio API, the application features a modular architecture with dual MIDI device support and advanced Strudel REPL integration for live coding.
+A comprehensive web-based musical interface application that provides real-time audio synthesis, visual feedback, and seamless MIDI-to-Strudel code conversion. Built with modern vanilla JavaScript and Web Audio API, the application features a modular architecture with advanced MIDI device support, intelligent beat detection, and direct Strudel REPL integration for live coding workflows.
 
-Demo: https://midi-strudel-dash.vercel.app/ 
+**Demo**: https://midi-strudel-dash.vercel.app/ 
 
-## Core Features
+## 🎹 Core Features
 
 ### 1. Advanced XY Pad Controller
-- **Purpose**: Multi-scale musical control through 2D interaction with real-time Strudel code generation
-- **Scale System**:
-  - **17 Musical Scales**: Pentatonic, Major, Natural Minor, Harmonic Minor, Melodic Minor, Diminished, Bhairav, Bhairavi, Yaman, Kafi, Asavari, Todi, Purvi, Marwa, Khamaj, Kalyan, Chromatic
-  - **Tonic Selection**: Full chromatic range from C3 to B3 (48-59 MIDI notes)
-  - **Interactive Controls**: Global tonic selector and scale dropdown
-  - **3+ Octave Range**: Dynamic scale generation with octave boundaries
-- **Functionality**:
-  - X-axis controls note selection from current scale (quantized)
-  - Y-axis controls amplitude/velocity (0-127 MIDI range)
-  - Real-time visual feedback with crosshairs and note information display
-  - Supports both MIDI input (CC1/CC2) and mouse/touch interaction
-  - Note display with MIDI note number, frequency in Hz, and scale information
-  - **Strudel Integration**: Generated notes are automatically captured and converted to Strudel syntax
-  - Seamless integration with live coding workflow
+- **Multi-Scale Musical Control**: 2D interaction with real-time Strudel code generation
+- **17 Musical Scales**: Pentatonic, Major, Natural Minor, Harmonic Minor, Melodic Minor, Diminished, Bhairav, Bhairavi, Yaman, Kafi, Asavari, Todi, Purvi, Marwa, Khamaj, Kalyan, Chromatic
+- **Global Tonic Selection**: Full chromatic range from C3 to B3 (MIDI notes 48-59)
+- **3+ Octave Range**: Dynamic scale generation with octave boundaries
+- **Dual Interaction Modes**: 
+  - Mouse/touch interaction with configurable mouseover behavior
+  - MIDI CC input (CC1/CC2) for hardware controller integration
+- **Real-time Feedback**: Visual crosshairs, note names, MIDI numbers, frequencies in Hz
+- **Strudel Integration**: Automatic note capture with throttling to prevent chord detection artifacts
 
-### 2. Enhanced Audio Engine
-- **Advanced Synthesizer**:
-  - Multiple waveform options: sine, square, sawtooth, triangle
-  - Configurable ADSR envelope with decay and sustain controls
-  - Real-time cutoff frequency filtering
-  - Adjustable gain control for amplitude management
-  - Web Audio API-based architecture for high-quality synthesis
+### 2. Interactive Visual Keyboard
+- **Full Piano Interface**: Multi-octave chromatic keyboard display
+- **Smart Scale Highlighting**: Visual indication of playable notes based on current tonic/scale
+- **Real-time Note Feedback**: 
+  - Visual highlighting for played notes
+  - MIDI input visualization from external devices
+  - Integration with XY Pad and Strudel Coder for unified feedback
+- **Configurable Interaction**: 
+  - "Always" mode: hover to play
+  - "Drag" mode: click and drag to play
+- **Accessibility**: ARIA labels and keyboard navigation support
+
+### 3. Enhanced Audio Engine
+- **Professional Synthesizer**:
+  - Hard-coded optimized parameters for immediate playability
+  - ADSR envelope with configurable attack, decay, sustain, release
+  - Low-pass filtering with adjustable cutoff frequency
+  - Multiple waveform support (sine, sawtooth, square, triangle)
 - **Audio Management**:
+  - Web Audio API-based architecture for high-quality synthesis
   - Automatic note release with configurable duration
-  - Resource-efficient audio context management
-  - Real-time parameter updates without audio interruption
-  - Comprehensive error handling and fallback mechanisms
-
-### 3. Comprehensive MIDI Integration
-- **Universal MIDI Support**:
-  - Auto-detection of all available MIDI input devices
-  - Device-specific filtering and routing capabilities
-  - Real-time device connection monitoring with hot-plug support
-  - Graceful fallback when preferred devices are unavailable
-- **Advanced MIDI Processing**:
-  - Note velocity capture and processing
-  - MIDI CC (Control Change) support for XY Pad control
-  - Multi-device simultaneous input handling
-  - Comprehensive MIDI debugging and logging
-- **Device Management**:
-  - Dynamic device list updates
-  - User-selectable device filtering
-  - Device status monitoring and connection feedback
+  - Resource-efficient context management with suspend/resume handling
+  - Velocity-sensitive amplitude control (0-127 MIDI range)
 
 ### 4. Revolutionary Strudel MIDI Coder
-- **Purpose**: Real-time conversion of MIDI input to Strudel music notation with live REPL integration
-- **Advanced Features**:
-  - **Device Selection**: Interactive dropdown to select from all available MIDI input devices
-  - **Dual Notation Support**: Musical notation (c4, d4, etc.) and integer notation (MIDI numbers)
-  - **Intelligent Chord Detection**: Automatic chord recognition for simultaneous note input
-  - **Advanced Sound Library**: Extensive autocomplete-enabled sound selection with 100+ options
-  - **Flexible Timing**: Configurable BPM and quantization resolution
-  - **Real-time Code Injection**: Automatic integration with Strudel REPL editor
-- **Code Generation**:
-  - **Compressed Notation**: Efficient repeat patterns (note!count, note@duration)
-  - **Multi-line Chord Formatting**: Sophisticated chord layout for complex compositions
-  - **Strudel-compatible Syntax**: Direct integration with Strudel live coding environment
-  - **Automatic BPM Setting**: Dynamic setcpm() generation based on user input
-- **User Interface**:
-  - Intuitive device selection with status display
-  - Real-time preview of generated code
-  - Visual feedback for captured note count
-  - Comprehensive control over sound selection and timing parameters
+- **Intelligent Note Capture**:
+  - **Smart Device Filtering**: Select from all available MIDI input devices or capture from all
+  - **Dual Notation Support**: Musical notation (c4, d#4) and integer notation (MIDI numbers)
+  - **Advanced Chord Detection**: Automatic recognition of simultaneous notes (20ms window)
+  - **Beat Detection**: NEW! Automatic BPM estimation based on user playing patterns
+- **Advanced Code Generation**:
+  - **Compressed Notation**: Efficient patterns with repeat counts (`note!3`) and duration (`note@2`)
+  - **Multi-line Chord Formatting**: Sophisticated layout for complex chord progressions
+  - **Smart Sound Transformation**: Automatic conversion from GM sound format to Strudel syntax
+  - **Dynamic BPM Setting**: Auto-detected or manual BPM with `setcpm()` generation
+- **Extensive Sound Library**: 100+ sounds with intelligent autocomplete search
+- **Real-time REPL Integration**: Automatic code injection with multiple fallback methods
 
-### 5. Seamless Strudel REPL Integration
-- **Live Coding Environment**:
-  - Embedded Strudel editor with syntax highlighting
-  - Real-time code injection from MIDI input
-  - Interactive code editing and execution
-  - Automatic code formatting and structure maintenance
-- **Integration Features**:
-  - **Copy Strudel Syntax**: One-click copying of generated code
-  - **Multi-method Content Extraction**: Robust code extraction from various editor states
-  - **Shadow DOM Support**: Compatible with modern web component architecture
-  - **Fallback Mechanisms**: Multiple content extraction methods for reliability
-- **User Experience**:
-  - Visual feedback for copy operations
-  - Error handling with user-friendly messages
-  - Seamless workflow between MIDI input and code generation
+### 5. ⚡ NEW: Intelligent Beat Detection
+- **Automatic BPM Detection**: Analyzes timing patterns in user input to estimate tempo
+- **Smart Interval Analysis**: 
+  - Filters out chord intervals and pauses
+  - Groups similar intervals with tolerance
+  - Identifies most common beat patterns
+- **Adaptive Updates**: 
+  - Minimum 4 notes required for detection
+  - 2-second cooldown between updates
+  - 8-second analysis window for recent patterns
+- **Visual Feedback**: BPM display shows "(auto)" when automatically detected
+- **Manual Override**: Manual BPM adjustment clears auto-detection
+- **Range Validation**: Ensures detected BPM stays within 20-200 BPM range
 
-### 6. Enhanced Visual Keyboard
-- **Interactive Piano Keyboard**:
-  - Full chromatic range display
-  - Real-time note highlighting for active notes
-  - Visual feedback for MIDI input and generated notes
-  - Responsive design for various screen sizes
-- **Integration**:
-  - Synchronized with global tonic and scale settings
-  - Visual representation of XY Pad generated notes
-  - MIDI input visualization
+### 6. Seamless Strudel REPL Integration
+- **Advanced Code Injection**:
+  - Multiple content extraction methods for robust compatibility
+  - Shadow DOM support for modern web components
+  - CodeMirror 5/6 integration with fallback mechanisms
+  - Custom event dispatching for enhanced compatibility
+- **User Experience Features**:
+  - **Copy Strudel Syntax**: One-click copying with multiple content extraction methods
+  - **Open in Strudel.cc**: Direct link generation with base64-encoded content
+  - **Real-time Code Updates**: Automatic injection on note capture, BPM changes, and sound selection
+  - **Visual Feedback**: Toast notifications for copy operations and errors
 
-### 7. Advanced Global Controls
-- **Musical Context**:
-  - Global tonic selection (C3-B3 range)
-  - Comprehensive scale selection with 17 options
-  - Real-time context updates across all components
-- **Synthesizer Parameters**:
-  - **Waveform Selection**: Sine, square, sawtooth, triangle options
-  - **Envelope Controls**: Configurable decay and sustain parameters
-  - **Audio Processing**: Gain control and frequency cutoff filtering
-  - **Real-time Updates**: Immediate parameter changes without audio interruption
+### 7. Comprehensive MIDI Integration
+- **Universal Device Support**:
+  - Auto-detection of all available MIDI input/output devices
+  - Hot-plug support with real-time device list updates
+  - Device-specific filtering and routing capabilities
+  - Graceful fallback when preferred devices are unavailable
+- **Advanced MIDI Processing**:
+  - Note velocity capture and processing (0-127 range)
+  - MIDI CC support for XY Pad control (CC1/CC2)
+  - Multi-device simultaneous input handling
+  - Comprehensive debugging tools and device logging
+- **Device Management**:
+  - Dynamic device list updates with connection monitoring
+  - User-selectable device filtering in Strudel Coder
+  - Device status monitoring with visual feedback
 
-### 8. Comprehensive Status Display
-- **Real-time Monitoring**:
-  - MIDI device connection status
-  - Audio engine initialization status
-  - System-wide component status tracking
-- **Error Handling**:
-  - User-friendly error messages
-  - Graceful degradation when components fail
-  - Comprehensive logging for debugging
+### 8. Advanced Global Controls
+- **Musical Context Management**:
+  - Global tonic selection with real-time updates across all components
+  - Comprehensive scale selection affecting keyboard highlighting and XY Pad
+  - Synchronized musical context across Visual Keyboard, XY Pad, and audio playback
+- **Real-time Component Communication**:
+  - Event-driven architecture with immediate updates
+  - Cross-component synchronization for consistent musical experience
 
-### 9. Enhanced User Interface
-- **Modern Design**:
-  - Clean, intuitive layout with logical component grouping
-  - Responsive design for desktop and mobile devices
-  - Visual feedback for all interactive elements
-- **GitHub Integration**:
-  - Fork button for easy project access
-  - Links to source code and documentation
-- **Accessibility**:
-  - Keyboard shortcuts for common operations
-  - Screen reader compatible elements
-  - High contrast visual design
+### 9. Comprehensive Status Display
+- **Real-time System Monitoring**:
+  - MIDI device connection status with detailed information
+  - Audio engine initialization status and error reporting
+  - Component-specific status tracking and error handling
+- **User-Friendly Feedback**:
+  - Color-coded status indicators (green/red)
+  - Detailed error messages with troubleshooting guidance
+  - Device management controls (refresh, logging)
 
-### 10. Modular Application Architecture
-- **Component System**:
-  - `AudioEngine` - Advanced Web Audio API synthesis (`js/audioEngine.js`)
-  - `MidiHandler` - Universal MIDI input/output management (`js/midiHandler.js`)
-  - `XYPad` - Multi-scale controller with Strudel integration (`js/xyPad.js`)
-  - `StrudelCoder` - Advanced MIDI-to-Strudel converter (`js/strudelCoder.js`)
-  - `VisualKeyboard` - Interactive piano keyboard display (`js/visualKeyboard.js`)
-  - `MainController` - Application coordinator and state management (`js/main.js`)
-- **Communication**:
-  - Event-driven architecture with callback-based communication
-  - Clean separation of concerns between components
-  - Independent module initialization with dependency injection
-- **Error Handling**:
-  - Graceful degradation when components fail
-  - Comprehensive error logging and user feedback
-  - Robust fallback mechanisms for critical functionality
-
-## Technical Implementation
+## 🛠 Technical Implementation
 
 ### Modern Web Technologies
-- **Vanilla JavaScript**: No external dependencies for core functionality
-- **Web Audio API**: High-quality audio synthesis and processing
-- **Web MIDI API**: Direct browser MIDI device access
-- **CSS3**: Modern styling with responsive design
-- **HTML5**: Semantic markup with accessibility features
+- **Vanilla JavaScript**: Zero external dependencies for core functionality
+- **Web Audio API**: High-quality audio synthesis with professional-grade processing
+- **Web MIDI API**: Direct browser access to MIDI devices with full event handling
+- **CSS3**: Modern responsive design with component-based styling
+- **HTML5**: Semantic markup with accessibility features and ARIA compliance
 
 ### Performance Optimizations
-- **Efficient Memory Management**: Automatic cleanup of audio resources
-- **Rate Limiting**: Intelligent throttling of high-frequency events
-- **Resource Disposal**: Proper cleanup on component destruction
-- **Optimized Rendering**: Minimal DOM manipulation for smooth interaction
+- **Efficient Memory Management**: Automatic cleanup of audio resources and MIDI connections
+- **Smart Rate Limiting**: Intelligent throttling for high-frequency events (beat detection, note capture)
+- **Resource Management**: Proper disposal of audio contexts and MIDI connections
+- **Optimized Rendering**: Minimal DOM manipulation with efficient update patterns
 
-### Browser Compatibility
-- **Modern Browser Support**: Chrome, Firefox, Safari, Edge
-- **Progressive Enhancement**: Graceful fallback for unsupported features
-- **Responsive Design**: Mobile and tablet compatibility
-- **Cross-platform Testing**: Windows, macOS, Linux support
+### Modular Architecture
+```
+js/
+├── audioEngine.js      # Web Audio API synthesis engine
+├── midiHandler.js      # MIDI device management and message processing  
+├── strudelCoder.js     # MIDI-to-Strudel conversion with beat detection
+├── visualKeyboard.js   # Interactive piano keyboard interface
+├── xyPad.js           # 2D musical controller with scale awareness
+└── main.js            # Application coordinator and state management
+```
 
-## Development Workflow
+### Component Communication
+- **Event-driven Architecture**: Callback-based communication between modules
+- **Dependency Injection**: Clean module initialization with configurable dependencies
+- **State Management**: Centralized musical context (tonic, scale) with synchronized updates
+- **Error Handling**: Graceful degradation with comprehensive error logging
 
-### Code Organization
-- Modular JavaScript architecture with clear separation of concerns
-- Comprehensive error handling and logging throughout
-- Consistent coding standards and documentation
-- Extensive inline comments for maintainability
+## 🎵 MIDI Note Detection Logic
 
-### Integration Testing
-- Real-time MIDI device testing
-- Audio engine performance validation
-- Strudel REPL integration verification
-- Cross-browser compatibility testing
+### Note Capture Process
+1. **Device Filtering**: `midiHandler.js` captures raw MIDI input and filters by selected device
+2. **Note Processing**: `strudelCoder.js` processes notes with timing information
+3. **Chord Detection**: Notes within 20ms window are automatically grouped as chords
+4. **Beat Analysis**: Note timestamps are analyzed for tempo patterns
+5. **Code Generation**: Notes are converted to Strudel syntax with quantization
 
-### User Experience Focus
-- Intuitive interface design with minimal learning curve
-- Real-time feedback for all user interactions
-- Comprehensive help and status information
-- Accessibility compliance and testing
+### Beat Detection Algorithm
+```javascript
+// Simplified algorithm flow:
+1. Store note timestamps in rolling 8-second window
+2. Calculate intervals between consecutive notes  
+3. Filter intervals (100ms - 4000ms range)
+4. Group similar intervals with 50ms tolerance
+5. Find most common interval pattern
+6. Convert to BPM: 60000ms / interval
+7. Update BPM if difference > 5 BPM and pattern confidence is high
+```
 
-## New Features and Updates
+### Advanced Features
+- **Velocity Sensitivity**: Full 0-127 MIDI velocity range support
+- **Multi-device Input**: Simultaneous input from multiple MIDI controllers
+- **Real-time Quantization**: Configurable timing resolution (10ms - 1000ms)
+- **Pattern Recognition**: Intelligent detection of musical patterns and rhythms
 
-### Play and Stop Buttons
-- **Purpose**: Added play and stop buttons to control the playback of Strudel syntax.
-- **Implementation**: Integrated with the AudioEngine and StrudelCoder components to manage playback.
+## 🚀 Usage Guide
 
-### Updated AudioEngine
-- **Hard-coded Parameters**: Synth parameters such as waveform, attack time, decay time, sustain level, and release time are now hard-coded.
-- **Improved Initialization**: Enhanced error handling and context management.
+### Getting Started
+1. **Open the application** in a modern web browser (Chrome recommended for best MIDI support)
+2. **Connect MIDI devices** (optional) - devices will be auto-detected
+3. **Select tonic and scale** using the global controls
+4. **Choose interaction method**:
+   - Use the Visual Keyboard for traditional piano input
+   - Use the XY Pad for expressive 2D control
+   - Connect external MIDI controller for hardware input
 
-### Enhanced MIDI Integration
-- **Device Management**: Improved device detection and management with better logging and error handling.
+### Strudel Workflow
+1. **Play notes** using any input method
+2. **Watch real-time code generation** in the Strudel REPL
+3. **Automatic BPM detection** analyzes your playing tempo
+4. **Adjust parameters**:
+   - BPM slider (overrides auto-detection)
+   - Quantization resolution
+   - Sound selection with autocomplete
+   - Notation type (musical/integer)
+5. **Copy or open** generated code directly in Strudel.cc
 
-### Visual Keyboard Enhancements
-- **Interactive Feedback**: Real-time note highlighting and improved interaction with the XY Pad and Strudel Coder.
+### Advanced Usage
+- **Beat Detection**: Play steady rhythms for automatic tempo detection
+- **Chord Input**: Play multiple notes simultaneously (within 20ms) for chord notation
+- **Device Selection**: Choose specific MIDI devices in Strudel Coder for focused input
+- **Sound Exploration**: Use autocomplete search to discover 100+ available sounds
 
-### XY Pad Improvements
-- **Musical Context Updates**: Enhanced interaction handling and real-time updates for musical context changes.
+## 🎯 Recent Updates
 
-### Strudel Coder Enhancements
-- **Code Injection**: Improved real-time code injection and feedback mechanisms.
-- **Device Selection**: Enhanced device selection and management for MIDI input.
+### New Beat Detection System
+- **Intelligent Tempo Analysis**: Automatic BPM detection from user input patterns
+- **Adaptive Learning**: System learns from consistent playing patterns
+- **Visual Feedback**: BPM display indicates when tempo is auto-detected
+- **Manual Override**: User can manually adjust BPM to override detection
 
-### General Improvements
-- **UI Enhancements**: Improved layout and styling for better user experience.
-- **Error Handling**: Comprehensive error handling and logging across components.
+### Enhanced MIDI Processing
+- **Improved Device Management**: Better hot-plug support and connection monitoring
+- **Advanced Note Capture**: Optimized chord detection and timing analysis
+- **Performance Optimization**: Reduced latency and improved responsiveness
 
-## Future Enhancements
+### Strudel Integration Improvements
+- **Robust Code Injection**: Multiple fallback methods for different Strudel editor implementations
+- **Enhanced Content Extraction**: Improved copy functionality with better error handling
+- **Direct Strudel.cc Links**: One-click opening of generated code in the official Strudel platform
+
+## 🔮 Future Enhancements
 
 ### Planned Features
-- **Advanced Chord Progressions**: Intelligent chord suggestion and progression generation
-- **Pattern Recording**: Loop recording and playback functionality
-- **MIDI File Export**: Save generated patterns as standard MIDI files
-- **Advanced Visualization**: Waveform displays and frequency analysis
-- **Preset Management**: Save and load user-defined configurations
+- **Advanced Pattern Recognition**: Machine learning-based rhythm and melody analysis
+- **Loop Recording**: Multi-layer loop recording with overdub capabilities
+- **MIDI File Export**: Standard MIDI file generation from captured patterns
+- **Preset Management**: Save and recall complete application states
+- **Advanced Visualization**: Real-time waveform and spectrum analysis
 
-### Technical Improvements
+### UI/UX Improvements
+- **Flexible Grid Looper**: Rectangular loop interface with 3/8 and 4/4 time signature support
+- **Circular Pattern Sequencer**: Variable angle/time signature with multi-ring sound placement
+- **Draggable Clips**: Generated pattern clips that can be dragged to Strudel or combined
+- **Advanced Routing**: Complex signal routing between components
+
+### Technical Roadmap
 - **WebAssembly Integration**: Enhanced audio processing performance
-- **Service Worker Support**: Offline functionality and caching
+- **Service Worker Support**: Offline functionality and improved caching
 - **WebGL Visualization**: Advanced 3D visual representations
-- **Machine Learning**: Intelligent pattern recognition and generation
+- **Cloud Synchronization**: Save and share patterns across devices
 
-## Conclusion
+## 🔧 Development
 
-The MIDI Musical Interface represents a cutting-edge approach to digital music creation, combining traditional MIDI control with modern live coding techniques. The seamless integration with Strudel provides an unprecedented workflow for musicians and developers alike, enabling real-time composition through both traditional performance and code generation.
+### Code Organization
+- **Modular Design**: Clean separation of concerns with minimal coupling
+- **Comprehensive Documentation**: Inline comments and JSDoc annotations
+- **Error Handling**: Robust error management with user-friendly feedback
+- **Performance Monitoring**: Built-in logging and debugging capabilities
 
-The modular architecture ensures extensibility and maintainability, while the comprehensive feature set addresses the needs of both casual users and professional musicians. The application serves as a bridge between traditional music performance and modern algorithmic composition, opening new possibilities for creative expression. 
+### Browser Compatibility
+- **Modern Browser Support**: Chrome, Firefox, Safari, Edge (latest versions)
+- **Progressive Enhancement**: Graceful fallback for unsupported features
+- **Mobile Support**: Touch-optimized interfaces for tablets and phones
+- **Cross-platform Testing**: Windows, macOS, Linux compatibility
 
+## 📄 License & Contributing
 
-# todos
+This project represents a bridge between traditional music performance and modern live coding, enabling new forms of creative expression through the seamless integration of MIDI input and Strudel's powerful pattern language.
 
+**GitHub Repository**: https://github.com/knectardev/midi_strudel_dash
 
-1. Flexible grid for regular rectangular looper
-with 3/8 time and 4/4 time options. 
+---
 
-2. Flexible circle looper with variable angle / time signature equivalents. 
-Update the component shape (does not need to remain triangle) to support placing different sounds types in different rings. 
-
-3. Perhaps, draggable "clips" that have been generated on the palette, to be draggable (or "sendable" to Strudel. 
+*The MIDI Strudel Interface is designed for musicians, live coders, and creative technologists who want to explore the intersection of hardware control and algorithmic composition.*
 
