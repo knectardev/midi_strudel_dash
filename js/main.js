@@ -194,6 +194,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Add event listener for Open in Strudel.cc link
+    const strudelDocsLink = document.getElementById('strudelDocsLink');
+    if (strudelDocsLink) {
+        strudelDocsLink.addEventListener('click', (e) => {
+            e.preventDefault(); // Prevent default link behavior
+            openInStrudelCC();
+        });
+    }
+
     /**
      * Copies the current content of the strudel-editor to the clipboard
      */
@@ -287,6 +296,107 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error copying strudel content:', error);
             showCopyFeedback('Failed to copy content', 'error');
+        }
+    }
+
+    /**
+     * Opens strudel.cc with the current editor content injected
+     */
+    async function openInStrudelCC() {
+        try {
+            const strudelEditor = document.querySelector('strudel-editor');
+            if (!strudelEditor) {
+                showCopyFeedback('Strudel editor not found', 'error');
+                return;
+            }
+
+            let content = '';
+            
+            // Use the same content extraction logic as copyStrudelEditorContent
+            // Method 1: Try to get content from common properties
+            const contentProperties = ['code', 'value', 'content', 'text', 'textContent'];
+            for (const prop of contentProperties) {
+                if (prop in strudelEditor && strudelEditor[prop]) {
+                    content = strudelEditor[prop];
+                    console.log(`Found content using property: ${prop}`);
+                    break;
+                }
+            }
+
+            // Method 2: Try to get content from editor instance
+            if (!content && 'editor' in strudelEditor && strudelEditor.editor) {
+                const editor = strudelEditor.editor;
+                if (editor.getValue && typeof editor.getValue === 'function') {
+                    content = editor.getValue();
+                    console.log('Found content using editor.getValue()');
+                } else if (editor.state && editor.state.doc) {
+                    content = editor.state.doc.toString();
+                    console.log('Found content using editor.state.doc');
+                }
+            }
+
+            // Method 3: Try to extract from DOM elements
+            if (!content) {
+                const editorSelectors = ['.cm-content', '.cm-editor', 'textarea', '[contenteditable]'];
+                for (const selector of editorSelectors) {
+                    const element = strudelEditor.querySelector(selector);
+                    if (element) {
+                        content = element.textContent || element.value || '';
+                        if (content) {
+                            console.log(`Found content using selector: ${selector}`);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Method 4: Try shadow DOM
+            if (!content && strudelEditor.shadowRoot) {
+                const shadowSelectors = ['.cm-content', '.cm-editor', 'textarea', '[contenteditable]'];
+                for (const selector of shadowSelectors) {
+                    const element = strudelEditor.shadowRoot.querySelector(selector);
+                    if (element) {
+                        content = element.textContent || element.value || '';
+                        if (content) {
+                            console.log(`Found content in shadow DOM using selector: ${selector}`);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Method 5: Fallback to innerHTML parsing (remove HTML comments)
+            if (!content) {
+                const innerHTML = strudelEditor.innerHTML;
+                // Extract content from HTML comments (common pattern for strudel-editor)
+                const commentMatch = innerHTML.match(/<!--\s*([\s\S]*?)\s*-->/);
+                if (commentMatch && commentMatch[1]) {
+                    content = commentMatch[1].trim();
+                    console.log('Found content in HTML comment');
+                } else {
+                    // Try getting just the text content
+                    content = strudelEditor.textContent || '';
+                    console.log('Using fallback textContent');
+                }
+            }
+
+            if (!content || content.trim() === '') {
+                showCopyFeedback('No content found to open in Strudel.cc', 'warning');
+                return;
+            }
+
+            // Encode the content as base64 for the URL
+            const encodedContent = btoa(content);
+            const strudelUrl = `https://strudel.cc/#${encodedContent}`;
+            
+            // Open in new tab
+            window.open(strudelUrl, '_blank');
+            showCopyFeedback('Opened in Strudel.cc!', 'success');
+            console.log('Opened Strudel.cc with content:', content);
+
+        } catch (error) {
+            console.error('Error opening in Strudel.cc:', error);
+            showCopyFeedback('Failed to open in Strudel.cc', 'error');
         }
     }
 
