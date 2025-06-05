@@ -1,4 +1,4 @@
-# MIDI Strudel Interface - Musical Live Coding Platform
+# Strudelizer: MIDI Strudel Interface - Musical Live Coding Platform
 
 ## Overview
 A comprehensive web-based musical interface application that provides real-time audio synthesis, visual feedback, and seamless MIDI-to-Strudel code conversion. Built with modern vanilla JavaScript and Web Audio API, the application features a modular architecture with advanced MIDI device support, intelligent beat detection, and direct Strudel REPL integration for live coding workflows.

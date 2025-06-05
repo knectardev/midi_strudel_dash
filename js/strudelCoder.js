@@ -28,7 +28,7 @@ class StrudelCoder {
         this.quantizeResolution = 500; // milliseconds
         this.maxNotes = 100; 
         this.selectedDeviceId = 'all'; 
-        this.availableDevices = [{ id: 'all', name: 'All Devices' }]; // Initial default
+        this.availableDevices = [{ id: 'all', name: 'Connected MIDI Devices' }]; // Initial default
         this.notationType = 'musical'; // Default to musical notation
         this.selectedSound = 'piano'; // Default sound
         this.bpm = 20; // Default BPM value
@@ -95,7 +95,7 @@ class StrudelCoder {
                 if (this.capturingFromDeviceDisplay && selectedDevice) {
                     this.capturingFromDeviceDisplay.textContent = selectedDevice.name;
                 } else if (this.capturingFromDeviceDisplay) {
-                    this.capturingFromDeviceDisplay.textContent = 'All Devices';
+                    this.capturingFromDeviceDisplay.textContent = 'Connected MIDI Devices';
                 }
             });
         }
@@ -252,7 +252,7 @@ class StrudelCoder {
         }
 
         this.availableDevices = [
-            { id: 'all', name: 'All Devices' }, // Manufacturer can be omitted or empty
+            { id: 'all', name: 'Connected MIDI Devices' }, // Manufacturer can be omitted or empty
             ...uniqueDevices.map(d => ({ id: d.id, name: d.name })) // Simplify to what's needed
         ];
 
