@@ -178,13 +178,14 @@ A comprehensive web-based musical interface application built with p5.js that pr
 
 ### 11. Modular Application Architecture
 - **Component System**:
-  - `AudioEngine` - Audio synthesis and sample management
-  - `MidiHandler` - MIDI input/output with device filtering
-  - `XYPad` - Multi-scale controller interface
-  - `Oscilloscope` - Multi-channel waveform visualization
-  - `Looper` - Loop sequencer with timeline
-  - `StrudelCoder` - MIDI-to-Strudel converter
-  - `sketch_modular` - Main application coordinator
+  - `AudioEngine` - Audio synthesis and sample management (`js/audioEngine.js`)
+  - `MidiHandler` - MIDI input/output with device filtering (`js/midiHandler.js`)
+  - `XYPad` - Multi-scale controller interface (`js/xyPad.js`)
+  - `Oscilloscope` - Multi-channel waveform visualization (Note: `oscilloscope.js` not found in current project structure)
+  - `Looper` - Loop sequencer with timeline (`legacy/looper.js`)
+  - `StrudelCoder` - MIDI-to-Strudel converter (`js/strudelCoder.js`)
+  - `sketch_modular` - Main application coordinator (Original: `sketch_modular.js` in `legacy/`. Current main coordinator might be `js/main.js`)
+  - `VisualKeyboard` - On-screen keyboard display (`js/visualKeyboard.js`) (Newly identified component)
 - **Communication**:
   - Callback-based inter-component communication
   - Event-driven architecture
@@ -220,6 +221,7 @@ A comprehensive web-based musical interface application built with p5.js that pr
   - Basic MIDI device testing
   - Message logging and analysis
   - Quick device verification
+- **@strudel/repl** - For embedding a Strudel editor component.
 
 ## Technical Requirements
 
@@ -232,6 +234,7 @@ A comprehensive web-based musical interface application built with p5.js that pr
   - `assets/snare.wav` - Snare drum sample
   - `assets/hihat.wav` - Hi-hat sample
   - `assets/met.wav` - Metronome tick sound
+- **@strudel/repl** - For embedding Strudel editor.
 
 ### Browser Compatibility
 - **Modern browsers** with Web MIDI API support (Chrome, Firefox, Edge)
@@ -259,26 +262,31 @@ A comprehensive web-based musical interface application built with p5.js that pr
 
 ### File Structure
 ```
-korg_pad2_p5/
+midi_strudel_dash/
 ├── index.html              # Main application entry point
-├── sketch_modular.js       # Application coordinator
-├── audioEngine.js          # Audio synthesis and samples
-├── midiHandler.js          # MIDI input/output management
-├── xyPad.js               # Multi-scale XY controller
-├── oscilloscope.js        # Waveform visualization
-├── looper.js              # Loop sequencer
-├── strudelCoder.js        # MIDI-to-Strudel converter
-├── strudel-coder.html     # Standalone Strudel interface
-├── midi-debug.html        # MIDI debugging tool
-├── test-midi.html         # MIDI testing interface
-├── server.ps1             # Local development server
 ├── README.md              # Documentation
 ├── requirements.md        # This specification
-└── assets/                # Audio files
-    ├── kick.wav
-    ├── snare.wav
-    ├── hihat.wav
-    └── met.wav
+├── server.ps1             # Local development server
+├── .gitattributes          # Git attributes file
+├── assets/                # Audio files
+│   ├── kick.wav
+│   ├── snare.wav
+│   ├── hihat.wav
+│   └── met.wav
+├── css/                   # Stylesheets
+├── js/                    # JavaScript files
+│   ├── main.js              # Main application coordinator
+│   ├── audioEngine.js       # Audio synthesis and samples
+│   ├── midiHandler.js       # MIDI input/output management
+│   ├── xyPad.js             # Multi-scale XY controller
+│   ├── strudelCoder.js      # MIDI-to-Strudel converter
+│   └── visualKeyboard.js    # Visual keyboard display
+└── legacy/                # Older or deprecated modules
+    ├── sketch_modular.js    # Original application coordinator
+    ├── looper.js            # Loop sequencer
+    ├── strudel-coder.html   # Standalone Strudel interface
+    ├── midi-debug.html      # MIDI debugging tool
+    └── test-midi.html       # MIDI testing interface
 ```
 
 ### Development Requirements

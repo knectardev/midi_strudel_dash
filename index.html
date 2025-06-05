@@ -1,121 +1,314 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MIDI Musical Interface</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #1a1a1a;
-            font-family: 'Arial', sans-serif;
-            overflow: hidden;
-        }
-        
-        canvas {
-            display: block;
-        }
-        
-        .instructions {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            background-color: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 15px;
-            border-radius: 5px;
-            font-size: 12px;
-            max-width: 250px;
-            line-height: 1.4;
-            z-index: 1000;
-        }
-        
-        .instructions h3 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-        }
-        
-        .instructions ul {
-            margin: 0;
-            padding-left: 15px;
-        }
-    </style>
-  </head>
-  <body>
-    <!-- Instructions panel -->
-    <div class="instructions">
-        <h3>Controls</h3>
-        <ul>
-            <li><strong>XY Pad:</strong> Drag to control synth</li>
-            <li><strong>Circular Scale:</strong> Visual scale display controlled by MIDI XY</li>
-            <li><strong>Tonic/Scale:</strong> Click dropdowns to change key and scale</li>
-            <li><strong>MIDI:</strong> Connect Korg nanoPAD2</li>
-            <li><strong>Spacebar:</strong> Toggle recording</li>
-            <li><strong>C:</strong> Clear recordings</li>
-            <li><strong>S:</strong> Stop all audio</li>
-            <li><strong>M:</strong> Toggle metronome</li>
-            <li><strong>Strudel Button:</strong> Enable note capture</li>
-            <li><strong>Ctrl+C/Space:</strong> Copy Strudel code</li>
-        </ul>
-    </div>
+    <title>MIDI Strudel Interface</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>MIDI Strudel Interface</h1>
+    </header>
 
-    <!-- p5.js libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/addons/p5.sound.min.js"></script>
-
-    <!-- Application modules (order matters!) -->
-    <script src="audioEngine.js"></script>
-    <script src="midiHandler.js"></script>
-    <script src="xyPad.js"></script>
-    <script src="circularScale.js"></script>
-    <script src="looper.js"></script>
-    <script src="strudelCoder.js"></script>
-    <script src="sketch_modular.js"></script>
-
-    <script>
-        // Error handling - less intrusive
-        window.addEventListener('error', (e) => {
-            console.error('Application error:', e.error);
+    <main>
+        <section id="controls-global">
+            <h2>Global Controls</h2>
+            <div class="control-group">
+                <label for="globalTonicSelector">Tonic:</label>
+                <select id="globalTonicSelector">
+                    <!-- Options will be populated by JavaScript -->
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="globalScaleSelector">Scale:</label>
+                <select id="globalScaleSelector">
+                    <!-- Options will be populated by JavaScript -->
+                </select>
+            </div>
             
-            // Only show visual error for critical script loading errors
-            if (e.error && e.error.message && 
-                (e.error.message.includes('Failed to fetch') || 
-                 e.error.message.includes('Unexpected token') ||
-                 e.filename && e.filename.includes('.js'))) {
-                
-                // Create error display only for critical errors
-                const errorDiv = document.createElement('div');
-                errorDiv.style.cssText = `
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    background-color: rgba(255, 68, 68, 0.9);
-                    color: white;
-                    padding: 20px;
-                    border-radius: 10px;
-                    text-align: center;
-                    z-index: 2000;
-                    font-family: Arial, sans-serif;
-                `;
-                errorDiv.innerHTML = `
-                    <h2>Critical Error Loading Application</h2>
-                    <p>Please check the console for details.</p>
-                    <p>Make sure all audio files are in the assets/ folder.</p>
-                    <button onclick="location.reload()" style="
-                        background: white;
-                        color: #ff4444;
-                        border: none;
-                        padding: 10px 20px;
-                        border-radius: 5px;
-                        cursor: pointer;
-                        margin-top: 10px;
-                    ">Reload Page</button>
-                `;
-                document.body.appendChild(errorDiv);
-            }
-        });
-    </script>
-  </body>
-</html>
+            <div class="control-group synth-control-group">
+                <label for="synthWaveform">Waveform:</label>
+                <select id="synthWaveform">
+                    <option value="sine">Sine</option>
+                    <option value="square">Square</option>
+                    <option value="sawtooth" selected>Sawtooth</option>
+                    <option value="triangle">Triangle</option>
+                </select>
+            </div>
+            <div class="control-group synth-control-group">
+                <label for="synthDecay">Decay (s):</label>
+                <input type="range" id="synthDecay" min="0.01" max="2" step="0.01" value="0.32">
+                <span id="synthDecayValue">0.32s</span>
+            </div>
+            <div class="control-group synth-control-group">
+                <label for="synthSustain">Sustain Level:</label>
+                <input type="range" id="synthSustain" min="0" max="1" step="0.01" value="0.33">
+                <span id="synthSustainValue">0.33</span>
+            </div>
+            <div class="control-group synth-control-group">
+                <label for="synthGain">Gain:</label>
+                <input type="range" id="synthGain" min="0" max="1" step="0.01" value="0.36">
+                <span id="synthGainValue">0.36</span>
+            </div>
+            <div class="control-group synth-control-group">
+                <label for="synthCutoff">Cutoff (Hz):</label>
+                <input type="range" id="synthCutoff" min="20" max="20000" step="1" value="6469">
+                <span id="synthCutoffValue">6469Hz</span>
+            </div>
+
+            <div id="master-record-control"></div>
+            <div id="bpm-control"></div>
+            <div id="metronome-control-global"></div>
+            <div id="stop-audio-control"></div>
+        </section>
+
+        <section id="interactive-elements">
+            <div id="xy-pad-section">
+                <h2>XY Pad</h2>
+                <div id="xyPadContainer"> 
+                    <div id="xyPadArea">
+                        <div id="xyPadCrosshair"></div>
+                    </div>
+                    <div id="xyPadInfo">
+                        <p>Note: <span id="xyPadNoteDisplay">--</span></p>
+                        <p>MIDI: <span id="xyPadMidiDisplay">--</span>, Freq: <span id="xyPadFreqDisplay">-- Hz</span></p>
+                        <p>X: <span id="xyPadXDisplay">--</span>, Y: <span id="xyPadYDisplay">--</span> (Velocity)</p>
+                    </div>
+                </div>
+            </div>
+
+           
+        </section>
+
+        <section id="coding-elements">
+            <div id="strudel-coder-section">
+                <h2>Strudel MIDI Coder</h2>
+                <div id="strudelCoderContainer" class="component-panel"> 
+                    <div class="strudel-coder-header">
+                        <select id="strudelDeviceSelector">
+                            <option value="all">All Devices</option>
+                            <!-- MIDI devices will be populated here -->
+                        </select>
+                        <button id="strudelClear">Clear</button>
+                    </div>
+                    <div class="strudel-coder-controls">
+                        <div class="notation-toggle">
+                            <label for="notationTypeToggle">Notation Type:</label>
+                            <select id="notationTypeToggle">
+                                <option value="musical">Musical Notation</option>
+                                <option value="integer">Integer Notation</option>
+                            </select>
+                        </div>
+                        <div class="sound-selector">
+                            <label for="soundTypeSelector">Sound:</label>
+                            <select id="soundTypeSelector">
+                                <option value="piano" selected>piano</option>
+                                <option value="brown">brown</option>
+                                <option value="bytebeat">bytebeat</option>
+                                <option value="crackle">crackle</option>
+                                <option value="gm_accordion(7)">gm_accordion(7)</option>
+                                <option value="gm_acoustic_bass(4)">gm_acoustic_bass(4)</option>
+                                <option value="gm_acoustic_guitar_nylon(9)">gm_acoustic_guitar_nylon(9)</option>
+                                <option value="gm_acoustic_guitar_steel(10)">gm_acoustic_guitar_steel(10)</option>
+                                <option value="gm_agogo(6)">gm_agogo(6)</option>
+                                <option value="gm_alto_sax(6)">gm_alto_sax(6)</option>
+                                <option value="gm_applause(15)">gm_applause(15)</option>
+                                <option value="gm_bagpipe(1)">gm_bagpipe(1)</option>
+                                <option value="gm_bandoneon(10)">gm_bandoneon(10)</option>
+                                <option value="gm_banjo(6)">gm_banjo(6)</option>
+                                <option value="gm_baritone_sax(6)">gm_baritone_sax(6)</option>
+                                <option value="gm_bassoon(4)">gm_bassoon(4)</option>
+                                <option value="gm_bird_tweet(7)">gm_bird_tweet(7)</option>
+                                <option value="gm_blown_bottle(5)">gm_blown_bottle(5)</option>
+                                <option value="gm_brass_section(5)">gm_brass_section(5)</option>
+                                <option value="gm_breath_noise(8)">gm_breath_noise(8)</option>
+                                <option value="gm_celesta(6)">gm_celesta(6)</option>
+                                <option value="gm_cello(6)">gm_cello(6)</option>
+                                <option value="gm_choir_aahs(9)">gm_choir_aahs(9)</option>
+                                <option value="gm_church_organ(5)">gm_church_organ(5)</option>
+                                <option value="gm_clarinet(6)">gm_clarinet(6)</option>
+                                <option value="gm_clavinet(4)">gm_clavinet(4)</option>
+                                <option value="gm_contrabass(3)">gm_contrabass(3)</option>
+                                <option value="gm_distortion_guitar(7)">gm_distortion_guitar(7)</option>
+                                <option value="gm_drawbar_organ(7)">gm_drawbar_organ(7)</option>
+                                <option value="gm_dulcimer(5)">gm_dulcimer(5)</option>
+                                <option value="gm_electric_bass_finger(4)">gm_electric_bass_finger(4)</option>
+                                <option value="gm_electric_bass_pick(5)">gm_electric_bass_pick(5)</option>
+                                <option value="gm_electric_guitar_clean(9)">gm_electric_guitar_clean(9)</option>
+                                <option value="gm_electric_guitar_jazz(9)">gm_electric_guitar_jazz(9)</option>
+                                <option value="gm_electric_guitar_muted(10)">gm_electric_guitar_muted(10)</option>
+                                <option value="gm_english_horn(4)">gm_english_horn(4)</option>
+                                <option value="gm_epiano1(11)">gm_epiano1(11)</option>
+                                <option value="gm_epiano2(9)">gm_epiano2(9)</option>
+                                <option value="gm_fiddle(9)">gm_fiddle(9)</option>
+                                <option value="gm_flute(5)">gm_flute(5)</option>
+                                <option value="gm_french_horn(5)">gm_french_horn(5)</option>
+                                <option value="gm_fretless_bass(2)">gm_fretless_bass(2)</option>
+                                <option value="gm_fx_atmosphere(13)">gm_fx_atmosphere(13)</option>
+                                <option value="gm_fx_brightness(12)">gm_fx_brightness(12)</option>
+                                <option value="gm_fx_crystal(10)">gm_fx_crystal(10)</option>
+                                <option value="gm_fx_echoes(10)">gm_fx_echoes(10)</option>
+                                <option value="gm_fx_goblins(9)">gm_fx_goblins(9)</option>
+                                <option value="gm_fx_rain(6)">gm_fx_rain(6)</option>
+                                <option value="gm_fx_sci_fi(9)">gm_fx_sci_fi(9)</option>
+                                <option value="gm_fx_soundtrack(5)">gm_fx_soundtrack(5)</option>
+                                <option value="gm_glockenspiel(5)">gm_glockenspiel(5)</option>
+                                <option value="gm_guitar_fret_noise(8)">gm_guitar_fret_noise(8)</option>
+                                <option value="gm_guitar_harmonics(3)">gm_guitar_harmonics(3)</option>
+                                <option value="gm_gunshot(12)">gm_gunshot(12)</option>
+                                <option value="gm_harmonica(6)">gm_harmonica(6)</option>
+                                <option value="gm_harpsichord(8)">gm_harpsichord(8)</option>
+                                <option value="gm_helicopter(16)">gm_helicopter(16)</option>
+                                <option value="gm_kalimba(5)">gm_kalimba(5)</option>
+                                <option value="gm_koto(9)">gm_koto(9)</option>
+                                <option value="gm_lead_1_square(3)">gm_lead_1_square(3)</option>
+                                <option value="gm_lead_2_sawtooth(7)">gm_lead_2_sawtooth(7)</option>
+                                <option value="gm_lead_3_calliope(7)">gm_lead_3_calliope(7)</option>
+                                <option value="gm_lead_4_chiff(6)">gm_lead_4_chiff(6)</option>
+                                <option value="gm_lead_5_charang(10)">gm_lead_5_charang(10)</option>
+                                <option value="gm_lead_6_voice(6)">gm_lead_6_voice(6)</option>
+                                <option value="gm_lead_7_fifths(5)">gm_lead_7_fifths(5)</option>
+                                <option value="gm_lead_8_bass_lead(5)">gm_lead_8_bass_lead(5)</option>
+                                <option value="gm_marimba(7)">gm_marimba(7)</option>
+                                <option value="gm_melodic_tom(9)">gm_melodic_tom(9)</option>
+                                <option value="gm_music_box(5)">gm_music_box(5)</option>
+                                <option value="gm_muted_trumpet(5)">gm_muted_trumpet(5)</option>
+                                <option value="gm_oboe(5)">gm_oboe(5)</option>
+                                <option value="gm_ocarina(4)">gm_ocarina(4)</option>
+                                <option value="gm_orchestra_hit(5)">gm_orchestra_hit(5)</option>
+                                <option value="gm_orchestral_harp(5)">gm_orchestral_harp(5)</option>
+                                <option value="gm_overdriven_guitar(10)">gm_overdriven_guitar(10)</option>
+                                <option value="gm_pad_bowed(5)">gm_pad_bowed(5)</option>
+                                <option value="gm_pad_choir(6)">gm_pad_choir(6)</option>
+                                <option value="gm_pad_halo(8)">gm_pad_halo(8)</option>
+                                <option value="gm_pad_metallic(7)">gm_pad_metallic(7)</option>
+                                <option value="gm_pad_new_age(12)">gm_pad_new_age(12)</option>
+                                <option value="gm_pad_poly(7)">gm_pad_poly(7)</option>
+                                <option value="gm_pad_sweep(7)">gm_pad_sweep(7)</option>
+                                <option value="gm_pad_warm(7)">gm_pad_warm(7)</option>
+                                <option value="gm_pan_flute(8)">gm_pan_flute(8)</option>
+                                <option value="gm_percussive_organ(6)">gm_percussive_organ(6)</option>
+                                <option value="gm_piano(32)">gm_piano(32)</option>
+                                <option value="gm_piccolo(5)">gm_piccolo(5)</option>
+                                <option value="gm_pizzicato_strings(6)">gm_pizzicato_strings(6)</option>
+                                <option value="gm_recorder(5)">gm_recorder(5)</option>
+                                <option value="gm_reed_organ(8)">gm_reed_organ(8)</option>
+                                <option value="gm_reverse_cymbal(9)">gm_reverse_cymbal(9)</option>
+                                <option value="gm_rock_organ(5)">gm_rock_organ(5)</option>
+                                <option value="gm_seashore(16)">gm_seashore(16)</option>
+                                <option value="gm_shakuhachi(5)">gm_shakuhachi(5)</option>
+                                <option value="gm_shamisen(7)">gm_shamisen(7)</option>
+                                <option value="gm_shanai(5)">gm_shanai(5)</option>
+                                <option value="gm_sitar(7)">gm_sitar(7)</option>
+                                <option value="gm_slap_bass_1(4)">gm_slap_bass_1(4)</option>
+                                <option value="gm_slap_bass_2(4)">gm_slap_bass_2(4)</option>
+                                <option value="gm_soprano_sax(5)">gm_soprano_sax(5)</option>
+                                <option value="gm_steel_drums(6)">gm_steel_drums(6)</option>
+                                <option value="gm_string_ensemble_1(11)">gm_string_ensemble_1(11)</option>
+                                <option value="gm_string_ensemble_2(7)">gm_string_ensemble_2(7)</option>
+                                <option value="gm_synth_bass_1(10)">gm_synth_bass_1(10)</option>
+                                <option value="gm_synth_bass_2(7)">gm_synth_bass_2(7)</option>
+                                <option value="gm_synth_brass_1(4)">gm_synth_brass_1(4)</option>
+                                <option value="gm_synth_brass_2(7)">gm_synth_brass_2(7)</option>
+                                <option value="gm_synth_choir(5)">gm_synth_choir(5)</option>
+                                <option value="gm_synth_drum(7)">gm_synth_drum(7)</option>
+                                <option value="gm_synth_strings_1(7)">gm_synth_strings_1(7)</option>
+                                <option value="gm_synth_strings_2(4)">gm_synth_strings_2(4)</option>
+                                <option value="gm_taiko_drum(10)">gm_taiko_drum(10)</option>
+                                <option value="gm_telephone(10)">gm_telephone(10)</option>
+                                <option value="gm_tenor_sax(4)">gm_tenor_sax(4)</option>
+                                <option value="gm_timpani(6)">gm_timpani(6)</option>
+                                <option value="gm_tinkle_bell(1)">gm_tinkle_bell(1)</option>
+                                <option value="gm_tremolo_strings(6)">gm_tremolo_strings(6)</option>
+                                <option value="gm_trombone(5)">gm_trombone(5)</option>
+                                <option value="gm_trumpet(4)">gm_trumpet(4)</option>
+                                <option value="gm_tuba(4)">gm_tuba(4)</option>
+                                <option value="gm_tubular_bells(6)">gm_tubular_bells(6)</option>
+                                <option value="gm_vibraphone(6)">gm_vibraphone(6)</option>
+                                <option value="gm_viola(5)">gm_viola(5)</option>
+                                <option value="gm_violin(9)">gm_violin(9)</option>
+                                <option value="gm_voice_oohs(6)">gm_voice_oohs(6)</option>
+                                <option value="gm_whistle(4)">gm_whistle(4)</option>
+                                <option value="gm_woodblock(9)">gm_woodblock(9)</option>
+                                <option value="gm_xylophone(6)">gm_xylophone(6)</option>
+                                <option value="pink">pink</option>
+                                <option value="pulse">pulse</option>
+                                <option value="sawtooth">sawtooth</option>
+                                <option value="sine">sine</option>
+                                <option value="square">square</option>
+                                <option value="supersaw">supersaw</option>
+                                <option value="triangle">triangle</option>
+                                <option value="white">white</option>
+                                <option value="z_noise">z_noise</option>
+                                <option value="z_sawtooth">z_sawtooth</option>
+                                <option value="z_sine">z_sine</option>
+                                <option value="z_square">z_square</option>
+                                <option value="z_tan">z_tan</option>
+                                <option value="z_triangle">z_triangle</option>
+                                <option value="zzfx">zzfx</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="strudel-bpm-control">
+                        <label for="strudelBpmSlider">BPM (Beats Per Minute):</label>
+                        <div class="bpm-control-group">
+                            <input type="range" id="strudelBpmSlider" min="10" max="200" value="20" step="1">
+                            <span id="strudelBpmValue">20</span>
+                        </div>
+                    </div>
+                    <div class="strudel-coder-status">
+                        <p>Captured Notes: <span id="strudelCapturedNotesCount">0</span></p>
+                        <p>Capturing from: <span id="strudelCapturingFromDevice">All Devices</span></p>
+                        <p class="hint-text">Code auto-injected into REPL as you play</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+
+        <section id="strudel-integration-section">
+            <div class="strudel-integration-header">
+                <h2>Strudel REPL Integration</h2>
+                <button id="copyStrudelSyntax">Copy Strudel Syntax</button>
+            </div>
+            <strudel-editor>
+  <!--
+setcps(40)
+//
+// strudel code will go here! 
+//
+//
+-->
+            </strudel-editor>
+        </section>
+
+        <section id="visual-keyboard-section">
+            <h2>Visual Keyboard</h2>
+            <div id="pianoKeyboardContainer">
+                <!-- Piano keys will be generated by JavaScript -->
+            </div>
+        </section>
+
+
+        <section id="status-display">
+            <h2>Status</h2>
+            <div id="midi-status"><p>MIDI Status: Not Initialized</p></div>
+            <div id="audio-status"><p>Audio Status: Not Initialized</p></div>
+            <div id="general-status"><p>System Status: Loading...</p></div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Legacy p5.js version can be found in the /legacy folder.</p>
+    </footer>
+
+    <script src="js/strudelCoder.js"></script>
+    <script src="js/midiHandler.js"></script> 
+    <script src="js/xyPad.js"></script>
+    <script src="js/audioEngine.js"></script>
+    <script src="js/visualKeyboard.js"></script>
+    <script src="js/main.js"></script>
+    <script src="https://unpkg.com/@strudel/repl@latest"></script>
+</body>
+</html> 

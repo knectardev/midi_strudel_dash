@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI Musical Interface</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+        
+        canvas {
+            display: block;
+        }
+        
+        .instructions {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            max-width: 250px;
+            line-height: 1.4;
+            z-index: 1000;
+        }
+        
+        .instructions h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+        
+        .instructions ul {
+            margin: 0;
+            padding-left: 15px;
+        }
+    </style>
+  </head>
+  <body>
+    <!-- Instructions panel -->
+    <div class="instructions">
+        <h3>Controls</h3>
+        <ul>
+            <li><strong>XY Pad:</strong> Drag to control synth</li>
+            <li><strong>Circular Scale:</strong> Visual scale display controlled by MIDI XY</li>
+            <li><strong>Tonic/Scale:</strong> Click dropdowns to change key and scale</li>
+            <li><strong>MIDI:</strong> Connect Korg nanoPAD2</li>
+            <li><strong>Spacebar:</strong> Toggle recording</li>
+            <li><strong>C:</strong> Clear recordings</li>
+            <li><strong>S:</strong> Stop all audio</li>
+            <li><strong>M:</strong> Toggle metronome</li>
+            <li><strong>Strudel Button:</strong> Enable note capture</li>
+            <li><strong>Ctrl+C/Space:</strong> Copy Strudel code</li>
+        </ul>
+    </div>
+
+    <!-- p5.js libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/addons/p5.sound.min.js"></script>
+
+    <!-- Application modules (order matters!) -->
+    <script src="audioEngine.js"></script>
+    <script src="midiHandler.js"></script>
+    <script src="xyPad.js"></script>
+    <script src="circularScale.js"></script>
+    <script src="looper.js"></script>
+    <script src="strudelCoder.js"></script>
+    <script src="sketch_modular.js"></script>
+
+    <script>
+        // Error handling - less intrusive
+        window.addEventListener('error', (e) => {
+            console.error('Application error:', e.error);
+            
+            // Only show visual error for critical script loading errors
+            if (e.error && e.error.message && 
+                (e.error.message.includes('Failed to fetch') || 
+                 e.error.message.includes('Unexpected token') ||
+                 e.filename && e.filename.includes('.js'))) {
+                
+                // Create error display only for critical errors
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background-color: rgba(255, 68, 68, 0.9);
+                    color: white;
+                    padding: 20px;
+                    border-radius: 10px;
+                    text-align: center;
+                    z-index: 2000;
+                    font-family: Arial, sans-serif;
+                `;
+                errorDiv.innerHTML = `
+                    <h2>Critical Error Loading Application</h2>
+                    <p>Please check the console for details.</p>
+                    <p>Make sure all audio files are in the assets/ folder.</p>
+                    <button onclick="location.reload()" style="
+                        background: white;
+                        color: #ff4444;
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        margin-top: 10px;
+                    ">Reload Page</button>
+                `;
+                document.body.appendChild(errorDiv);
+            }
+        });
+    </script>
+  </body>
+</html>
