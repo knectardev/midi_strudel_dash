@@ -10,7 +10,10 @@ class StrudelCoder {
         this.deviceSelector = container.querySelector('#strudelDeviceSelector');
         this.notationTypeToggle = container.querySelector('#notationTypeToggle');
         this.soundTypeInput = container.querySelector('#soundTypeInput');
+        this.soundDropdownToggle = container.querySelector('#soundDropdownToggle');
+        this.soundSearchInput = container.querySelector('#soundSearchInput');
         this.soundAutocompleteResults = container.querySelector('#soundAutocompleteResults');
+        this.soundDropdownOptions = container.querySelector('#soundDropdownOptions');
         this.bpmSlider = container.querySelector('#strudelBpmSlider');
         this.bpmValueDisplay = container.querySelector('#strudelBpmValue');
         this.quantizeSlider = container.querySelector('#strudelQuantizeSlider');
@@ -110,22 +113,32 @@ class StrudelCoder {
         }
 
         if (this.soundTypeInput) {
-            this.soundTypeInput.addEventListener('input', () => {
-                const inputValue = this.soundTypeInput.value.toLowerCase();
-                const filteredSounds = this.availableSounds.filter(sound => 
-                    sound.toLowerCase().includes(inputValue));
+            // Main input is now readonly and acts as display
+            this.soundTypeInput.addEventListener('click', () => {
+                this.toggleDropdown();
+            });
+        }
+
+        if (this.soundDropdownToggle) {
+            this.soundDropdownToggle.addEventListener('click', (event) => {
+                event.stopPropagation();
+                this.toggleDropdown();
+            });
+        }
+
+        if (this.soundSearchInput) {
+            this.soundSearchInput.addEventListener('input', () => {
+                const inputValue = this.soundSearchInput.value.toLowerCase();
+                const filteredSounds = inputValue.length > 0 
+                    ? this.availableSounds.filter(sound => sound.toLowerCase().includes(inputValue))
+                    : this.availableSounds;
                 
-                if (inputValue.length > 0 && filteredSounds.length > 0) {
-                    this.displayAutocompleteResults(filteredSounds);
-                    this.soundAutocompleteResults.classList.add('show');
-                } else {
-                    this.soundAutocompleteResults.classList.remove('show');
-                }
+                this.displayDropdownOptions(filteredSounds);
                 this.currentAutocompleteIndex = -1;
             });
 
-            this.soundTypeInput.addEventListener('keydown', (event) => {
-                const items = this.soundAutocompleteResults.querySelectorAll('.autocomplete-item');
+            this.soundSearchInput.addEventListener('keydown', (event) => {
+                const items = this.soundDropdownOptions.querySelectorAll('.autocomplete-item');
                 
                 if (event.key === 'ArrowDown') {
                     event.preventDefault();
@@ -141,38 +154,25 @@ class StrudelCoder {
                         this.selectSound(items[this.currentAutocompleteIndex].textContent);
                     }
                 } else if (event.key === 'Escape') {
-                    this.soundAutocompleteResults.classList.remove('show');
-                    this.currentAutocompleteIndex = -1;
-                }
-            });
-
-            this.soundTypeInput.addEventListener('blur', () => {
-                // Delay hiding to allow clicking on items
-                setTimeout(() => {
-                    this.soundAutocompleteResults.classList.remove('show');
-                }, 150);
-            });
-
-            this.soundTypeInput.addEventListener('focus', () => {
-                if (this.soundTypeInput.value.length > 0) {
-                    const inputValue = this.soundTypeInput.value.toLowerCase();
-                    const filteredSounds = this.availableSounds.filter(sound => 
-                        sound.toLowerCase().includes(inputValue));
-                    if (filteredSounds.length > 0) {
-                        this.displayAutocompleteResults(filteredSounds);
-                        this.soundAutocompleteResults.classList.add('show');
-                    }
+                    this.closeDropdown();
                 }
             });
         }
 
-        if (this.soundAutocompleteResults) {
-            this.soundAutocompleteResults.addEventListener('click', (event) => {
+        if (this.soundDropdownOptions) {
+            this.soundDropdownOptions.addEventListener('click', (event) => {
                 if (event.target.classList.contains('autocomplete-item')) {
                     this.selectSound(event.target.textContent);
                 }
             });
         }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (event) => {
+            if (!event.target.closest('.autocomplete-container')) {
+                this.closeDropdown();
+            }
+        });
 
         if (this.bpmSlider) {
             this.bpmSlider.addEventListener('input', () => {
@@ -1085,22 +1085,64 @@ class StrudelCoder {
     }
 
     displayAutocompleteResults(results) {
-        if (!this.soundAutocompleteResults) return;
+        // This method is now replaced by displayDropdownOptions
+        this.displayDropdownOptions(results);
+    }
+
+    displayDropdownOptions(results) {
+        if (!this.soundDropdownOptions) return;
 
         // Clear existing results
-        this.soundAutocompleteResults.innerHTML = '';
+        this.soundDropdownOptions.innerHTML = '';
 
         // Populate new results
         results.forEach(result => {
             const item = document.createElement('div');
             item.className = 'autocomplete-item';
             item.textContent = result;
-            this.soundAutocompleteResults.appendChild(item);
+            this.soundDropdownOptions.appendChild(item);
         });
     }
 
+    toggleDropdown() {
+        if (!this.soundAutocompleteResults || !this.soundDropdownToggle) return;
+
+        const isOpen = this.soundAutocompleteResults.classList.contains('show');
+        
+        if (isOpen) {
+            this.closeDropdown();
+        } else {
+            this.openDropdown();
+        }
+    }
+
+    openDropdown() {
+        if (!this.soundAutocompleteResults || !this.soundDropdownToggle) return;
+
+        // Show all sounds initially
+        this.displayDropdownOptions(this.availableSounds);
+        this.soundAutocompleteResults.classList.add('show');
+        this.soundDropdownToggle.classList.add('open');
+        
+        // Clear and focus search input
+        if (this.soundSearchInput) {
+            this.soundSearchInput.value = '';
+            setTimeout(() => this.soundSearchInput.focus(), 50);
+        }
+        
+        this.currentAutocompleteIndex = -1;
+    }
+
+    closeDropdown() {
+        if (!this.soundAutocompleteResults || !this.soundDropdownToggle) return;
+
+        this.soundAutocompleteResults.classList.remove('show');
+        this.soundDropdownToggle.classList.remove('open');
+        this.currentAutocompleteIndex = -1;
+    }
+
     highlightAutocompleteItem(items) {
-        if (!this.soundAutocompleteResults) return;
+        if (!this.soundDropdownOptions) return;
 
         // Remove existing highlights
         items.forEach(item => item.classList.remove('highlighted'));
@@ -1108,6 +1150,12 @@ class StrudelCoder {
         // Highlight the current item
         if (this.currentAutocompleteIndex >= 0 && this.currentAutocompleteIndex < items.length) {
             items[this.currentAutocompleteIndex].classList.add('highlighted');
+            
+            // Scroll into view
+            items[this.currentAutocompleteIndex].scrollIntoView({
+                block: 'nearest',
+                behavior: 'smooth'
+            });
         }
     }
 
@@ -1115,8 +1163,7 @@ class StrudelCoder {
         if (this.soundTypeInput) {
             this.soundTypeInput.value = sound;
             this.selectedSound = sound;
-            this.soundAutocompleteResults.classList.remove('show');
-            this.currentAutocompleteIndex = -1;
+            this.closeDropdown();
             
             this.updateStatus();
             // Automatically inject code when sound type changes
