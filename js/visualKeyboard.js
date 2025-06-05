@@ -13,7 +13,14 @@ class VisualKeyboard {
         this.numKeys = 12 * this.octaves + 1; // +1 for the final C of the last octave
 
         this.keys = []; // To store references to key elements
+        this.isMousePressed = false; // Track if mouse is currently pressed down
+        this.lastPlayedKey = null; // Track the last key that was played to avoid repeats
+        
+        // Configuration for mouseover behavior
+        this.mouseoverMode = 'always'; // 'always' = mouseover always triggers, 'drag' = only when dragging
+        
         this._createKeyboard(); // This will re-generate keys with the new startNote
+        this._bindGlobalMouseEvents(); // Bind global mouse events for drag tracking
     }
 
     updatePlayableKeys(tonicMidiNote, scaleIntervals) {
@@ -78,29 +85,93 @@ class VisualKeyboard {
 
     _bindKeyEvents(keyElement, midiNote) {
         const velocity = 90; // Default velocity for mouse clicks
+        let isMouseDownOnThisKey = false; // Track if mouse was pressed down on this specific key
 
-        keyElement.addEventListener('mousedown', () => {
+        // Helper function to play note
+        const playNote = () => {
             if (keyElement.classList.contains('disabled-key')) {
                 return; // Do not play or process if key is disabled
             }
-            if (this.audioEngine) {
-                this.audioEngine.playSynthNote(midiNote, velocity);
+            
+            // Only play if this key hasn't been played recently (avoid rapid repeats)
+            if (this.lastPlayedKey !== midiNote) {
+                if (this.audioEngine) {
+                    this.audioEngine.playSynthNote(midiNote, velocity);
+                }
+                keyElement.classList.add('key-pressed');
+                if (this.noteOnCallback) {
+                    // Simulate note on for other modules, e.g., StrudelCoder
+                    this.noteOnCallback(midiNote, velocity, "VisualKeyboard"); 
+                }
+                this.lastPlayedKey = midiNote;
             }
-            keyElement.classList.add('key-pressed');
-            if (this.noteOnCallback) {
-                // Simulate note on for other modules, e.g., StrudelCoder
-                // The deviceName can be a generic "VisualKeyboard" or a specific simulated one
-                this.noteOnCallback(midiNote, velocity, "VisualKeyboard"); 
+        };
+
+        // Clear the pressed state
+        const clearPressed = () => {
+            keyElement.classList.remove('key-pressed');
+            if (this.lastPlayedKey === midiNote) {
+                this.lastPlayedKey = null;
+            }
+        };
+
+        keyElement.addEventListener('mousedown', (event) => {
+            event.preventDefault(); // Prevent text selection
+            this.isMousePressed = true;
+            isMouseDownOnThisKey = true;
+            // console.log('VisualKeyboard: mousedown on key', midiNote, 'isMousePressed:', this.isMousePressed);
+            playNote();
+        });
+
+        keyElement.addEventListener('mouseup', (event) => {
+            // console.log('VisualKeyboard: mouseup on key', midiNote);
+            this.isMousePressed = false; // Reset global state on mouseup
+            isMouseDownOnThisKey = false;
+            clearPressed();
+        });
+
+        keyElement.addEventListener('mouseover', (event) => {
+            // Check if any mouse button is currently pressed (more reliable than our tracking)
+            const isButtonPressed = (event.buttons & 1) === 1; // Check if left mouse button is pressed
+            console.log('VisualKeyboard: mouseover on key', midiNote, 'event.buttons:', event.buttons, 'isButtonPressed:', isButtonPressed, 'this.isMousePressed:', this.isMousePressed, 'mode:', this.mouseoverMode);
+            
+            // Determine if we should play based on mode
+            let shouldPlay = false;
+            if (this.mouseoverMode === 'always') {
+                shouldPlay = true; // Always play on mouseover
+            } else if (this.mouseoverMode === 'drag') {
+                shouldPlay = isButtonPressed || this.isMousePressed; // Only play when dragging
+            }
+            
+            if (shouldPlay) {
+                console.log('VisualKeyboard: triggering playNote on mouseover for key', midiNote);
+                playNote();
             }
         });
 
-        keyElement.addEventListener('mouseup', () => {
-            keyElement.classList.remove('key-pressed');
-            // If we implement note-off in audioEngine for sustained notes, call it here
+        // Add mouseenter as backup - more reliable than mouseover
+        keyElement.addEventListener('mouseenter', (event) => {
+            const isButtonPressed = (event.buttons & 1) === 1; // Check if left mouse button is pressed
+            // console.log('VisualKeyboard: mouseenter on key', midiNote, 'event.buttons:', event.buttons, 'isButtonPressed:', isButtonPressed, 'this.isMousePressed:', this.isMousePressed, 'mode:', this.mouseoverMode);
+            
+            // Determine if we should play based on mode
+            let shouldPlay = false;
+            if (this.mouseoverMode === 'always') {
+                shouldPlay = true; // Always play on mouseenter
+            } else if (this.mouseoverMode === 'drag') {
+                shouldPlay = isButtonPressed || this.isMousePressed; // Only play when dragging
+            }
+            
+            if (shouldPlay) {
+                // console.log('VisualKeyboard: triggering playNote on mouseenter for key', midiNote);
+                playNote();
+            }
         });
 
-        keyElement.addEventListener('mouseleave', () => { // Handle mouse dragging off a key
-            keyElement.classList.remove('key-pressed');
+        keyElement.addEventListener('mouseleave', () => {
+            // console.log('VisualKeyboard: mouseleave on key', midiNote);
+            isMouseDownOnThisKey = false;
+            clearPressed();
         });
     }
 
@@ -112,6 +183,41 @@ class VisualKeyboard {
             setTimeout(() => {
                 keyObj.element.classList.remove('key-pressed-midi');
             }, duration);
+        }
+    }
+
+    _bindGlobalMouseEvents() {
+        // More robust global mouse tracking
+        document.addEventListener('mousedown', (event) => {
+            if (event.button === 0) { // Only track left mouse button
+                this.isMousePressed = true;
+                // console.log('VisualKeyboard: global mousedown, isMousePressed:', this.isMousePressed);
+            }
+        });
+
+        document.addEventListener('mouseup', (event) => {
+            if (event.button === 0) { // Only track left mouse button
+                this.isMousePressed = false;
+                this.lastPlayedKey = null; // Reset last played key on mouse up
+                // console.log('VisualKeyboard: global mouseup, isMousePressed:', this.isMousePressed);
+            }
+        });
+
+        // Also handle mouse leave from document to reset state
+        document.addEventListener('mouseleave', () => {
+            this.isMousePressed = false;
+            this.lastPlayedKey = null;
+            // console.log('VisualKeyboard: document mouseleave, reset isMousePressed to false');
+        });
+    }
+
+    // Method to change mouseover behavior
+    setMouseoverMode(mode) {
+        if (mode === 'always' || mode === 'drag') {
+            this.mouseoverMode = mode;
+            console.log('VisualKeyboard: mouseover mode set to:', mode);
+        } else {
+            console.warn('VisualKeyboard: Invalid mouseover mode. Use "always" or "drag"');
         }
     }
 } 

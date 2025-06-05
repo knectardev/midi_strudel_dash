@@ -12,6 +12,7 @@ class MidiHandler {
     this.onControlChangeCallback = null; // Will be used by other modules later
     this.onNoteOnCallback = null;
     this.onNoteOffCallback = null; // Will be used by other modules later
+    this.onDeviceListChangeCallback = null; // New callback for device list changes
     
     this.debugMode = false; // Set to true for verbose logging
     // More specific device search terms from legacy, can be adjusted
@@ -55,6 +56,8 @@ class MidiHandler {
 
   _scanInitialDevices() {
     if (!this.midiAccess) return;
+    console.log(`Scanning for MIDI devices... Found ${this.midiAccess.inputs.size} inputs and ${this.midiAccess.outputs.size} outputs`);
+    
     // Clear previous lists
     this.midiInputs = [];
     // this.midiOut = null; // Let state change handle output if one disconnects and reconnects
@@ -63,7 +66,7 @@ class MidiHandler {
     this.midiAccess.inputs.forEach(input => {
       this.midiInputs.push(input);
       input.onmidimessage = (msg) => this._handleMidiMessage(msg, input.name, input.id);
-      if (this.debugMode) console.log(`MIDI Input connected: ${input.name} (ID: ${input.id})`);
+      console.log(`MIDI Input connected: ${input.name} (ID: ${input.id}, State: ${input.state})`);
     });
 
     // Outputs - preferentially find a Korg device
@@ -132,6 +135,9 @@ class MidiHandler {
     // Notify other modules about device list changes if necessary
     // This could be done via a callback or event emitter if components need to react dynamically beyond initial load.
     // For StrudelCoder, we update it explicitly after init and when MidiHandler signals a change if needed.
+    if (this.onDeviceListChangeCallback) {
+      this.onDeviceListChangeCallback();
+    }
   }
 
   _handleMidiMessage(message, deviceName = 'Unknown Device', deviceId = '') {
@@ -221,6 +227,7 @@ class MidiHandler {
   setNoteOnCallback(callback) { this.onNoteOnCallback = callback; }
   setNoteOffCallback(callback) { this.onNoteOffCallback = callback; }
   setControlChangeCallback(callback) { this.onControlChangeCallback = callback; }
+  setDeviceListChangeCallback(callback) { this.onDeviceListChangeCallback = callback; }
   // setDrumPadCallback(callback) { this.onDrumPadCallback = callback; }
 
   // Getters for device lists
@@ -251,13 +258,41 @@ class MidiHandler {
 
   // Debug utility to log current devices
   logDevices() {
-    console.log("Available MIDI Inputs:", this.getInputDevices());
+    console.log("=== MIDI DEVICE DEBUG ===");
+    console.log("MIDI Access object:", this.midiAccess);
+    if (this.midiAccess) {
+      console.log(`Raw MIDI Inputs (${this.midiAccess.inputs.size}):`, Array.from(this.midiAccess.inputs.values()));
+      console.log(`Raw MIDI Outputs (${this.midiAccess.outputs.size}):`, Array.from(this.midiAccess.outputs.values()));
+    }
+    console.log("Processed Input Devices:", this.getInputDevices());
     console.log("Selected MIDI Output:", this.getOutputDevice());
+    console.log("Internal midiInputs array:", this.midiInputs);
+    console.log("=========================");
   }
   
   // Allow external toggling of debug mode
   setDebugMode(enabled) {
     this.debugMode = enabled;
     console.log(`MIDI Handler debug mode ${enabled ? 'enabled' : 'disabled'}.`);
+  }
+
+  // Manual refresh method to re-scan for devices
+  async refreshDevices() {
+    if (!this.midiAccess) {
+      console.warn("Cannot refresh devices: MIDI not initialized");
+      return false;
+    }
+    
+    console.log("Manually refreshing MIDI devices...");
+    this._scanInitialDevices();
+    
+    // Notify callback about device list change
+    if (this.onDeviceListChangeCallback) {
+      this.onDeviceListChangeCallback();
+    }
+    
+    // Log updated devices
+    this.logDevices();
+    return true;
   }
 } 

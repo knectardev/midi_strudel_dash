@@ -32,7 +32,7 @@ class StrudelCoder {
         this.notationType = 'musical'; // Default to musical notation
         this.selectedSound = 'piano'; // Default sound
         this.bpm = 20; // Default BPM value
-        this.chordTimeWindow = 100; // milliseconds - notes within this window are considered simultaneous
+        this.chordTimeWindow = 20; // milliseconds - notes within this window are considered simultaneous (reduced from 100)
 
         // Autocomplete properties
         this.currentAutocompleteIndex = -1;

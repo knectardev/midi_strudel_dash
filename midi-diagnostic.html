@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI Device Diagnostic</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+        .device-info {
+            background-color: #2a2a2a;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .device-name {
+            font-weight: bold;
+            color: #61dafb;
+            font-size: 1.1em;
+        }
+        .device-details {
+            margin-top: 8px;
+            font-size: 0.9em;
+            color: #cccccc;
+        }
+        button {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #357abd;
+        }
+        .error {
+            color: #ff6b6b;
+        }
+        .success {
+            color: #51cf66;
+        }
+        .warning {
+            color: #ffd43b;
+        }
+        pre {
+            background-color: #1e1e1e;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 0.8em;
+        }
+    </style>
+</head>
+<body>
+    <h1>MIDI Device Diagnostic Tool</h1>
+    
+    <div>
+        <button onclick="scanMidiDevices()">Scan MIDI Devices</button>
+        <button onclick="requestMidiAccess()">Request MIDI Access</button>
+        <button onclick="testMidiMessages()">Test MIDI Messages</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <div id="status"></div>
+    <div id="devices"></div>
+    <div id="log"></div>
+
+    <script>
+        let midiAccess = null;
+        let logCount = 0;
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+            logDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            document.getElementById('devices').innerHTML = '';
+            logCount = 0;
+        }
+
+        async function requestMidiAccess() {
+            log('Requesting MIDI access...');
+            
+            if (!navigator.requestMIDIAccess) {
+                log('Web MIDI API not supported in this browser', 'error');
+                return;
+            }
+
+            try {
+                midiAccess = await navigator.requestMIDIAccess({ sysex: false });
+                log('MIDI access granted successfully!', 'success');
+                
+                // Set up state change listener
+                midiAccess.onstatechange = (event) => {
+                    log(`MIDI State Change: ${event.port.name} - ${event.port.state} (${event.port.type})`, 'warning');
+                    scanMidiDevices();
+                };
+                
+                scanMidiDevices();
+            } catch (error) {
+                log(`MIDI access failed: ${error.message}`, 'error');
+            }
+        }
+
+        function scanMidiDevices() {
+            if (!midiAccess) {
+                log('No MIDI access. Click "Request MIDI Access" first.', 'warning');
+                return;
+            }
+
+            const devicesDiv = document.getElementById('devices');
+            const statusDiv = document.getElementById('status');
+            
+            log('Scanning for MIDI devices...');
+            
+            const inputCount = midiAccess.inputs.size;
+            const outputCount = midiAccess.outputs.size;
+            
+            statusDiv.innerHTML = `
+                <div class="device-info">
+                    <div class="device-name">MIDI System Status</div>
+                    <div class="device-details">
+                        Inputs found: ${inputCount}<br>
+                        Outputs found: ${outputCount}<br>
+                        MIDI Access: ${midiAccess ? 'Active' : 'None'}<br>
+                        Sysex enabled: ${midiAccess.sysexEnabled}
+                    </div>
+                </div>
+            `;
+
+            let devicesHtml = '<h2>MIDI Input Devices:</h2>';
+            
+            if (inputCount === 0) {
+                devicesHtml += '<div class="device-info"><div class="device-name error">No MIDI input devices found</div></div>';
+            } else {
+                midiAccess.inputs.forEach((input, key) => {
+                    log(`Input Device: ${input.name} (ID: ${input.id}, State: ${input.state}, Connection: ${input.connection})`);
+                    
+                    devicesHtml += `
+                        <div class="device-info">
+                            <div class="device-name">${input.name || 'Unnamed Device'}</div>
+                            <div class="device-details">
+                                ID: ${input.id}<br>
+                                State: ${input.state}<br>
+                                Connection: ${input.connection}<br>
+                                Manufacturer: ${input.manufacturer || 'Unknown'}<br>
+                                Version: ${input.version || 'Unknown'}<br>
+                                Type: ${input.type}
+                            </div>
+                            <button onclick="listenToDevice('${input.id}')">Listen to this device</button>
+                        </div>
+                    `;
+                    
+                    // Set up message listener
+                    input.onmidimessage = (message) => {
+                        const [command, data1, data2] = message.data;
+                        log(`MIDI Message from ${input.name}: [${command}, ${data1}, ${data2}]`);
+                    };
+                });
+            }
+
+            devicesHtml += '<h2>MIDI Output Devices:</h2>';
+            
+            if (outputCount === 0) {
+                devicesHtml += '<div class="device-info"><div class="device-name error">No MIDI output devices found</div></div>';
+            } else {
+                midiAccess.outputs.forEach((output, key) => {
+                    log(`Output Device: ${output.name} (ID: ${output.id}, State: ${output.state}, Connection: ${output.connection})`);
+                    
+                    devicesHtml += `
+                        <div class="device-info">
+                            <div class="device-name">${output.name || 'Unnamed Device'}</div>
+                            <div class="device-details">
+                                ID: ${output.id}<br>
+                                State: ${output.state}<br>
+                                Connection: ${output.connection}<br>
+                                Manufacturer: ${output.manufacturer || 'Unknown'}<br>
+                                Version: ${output.version || 'Unknown'}<br>
+                                Type: ${output.type}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            devicesDiv.innerHTML = devicesHtml;
+        }
+
+        function listenToDevice(deviceId) {
+            if (!midiAccess) return;
+            
+            const device = midiAccess.inputs.get(deviceId);
+            if (!device) {
+                log(`Device with ID ${deviceId} not found`, 'error');
+                return;
+            }
+            
+            log(`Now listening to ${device.name}. Play some notes!`, 'success');
+            
+            device.onmidimessage = (message) => {
+                const [command, data1, data2] = message.data;
+                const messageType = (command & 0xF0) === 0x90 ? 'Note On' : 
+                                  (command & 0xF0) === 0x80 ? 'Note Off' : 
+                                  (command & 0xF0) === 0xB0 ? 'Control Change' : 
+                                  'Other';
+                log(`${device.name}: ${messageType} - [${command.toString(16)}, ${data1}, ${data2}]`, 'success');
+            };
+        }
+
+        function testMidiMessages() {
+            if (!midiAccess) {
+                log('No MIDI access available', 'error');
+                return;
+            }
+            
+            log('Testing MIDI message capture...');
+            log('Please play some notes on your MIDI devices');
+            
+            // Enable message listening on all inputs
+            midiAccess.inputs.forEach((input) => {
+                input.onmidimessage = (message) => {
+                    const [command, data1, data2] = message.data;
+                    const note = data1;
+                    const velocity = data2;
+                    const channel = (command & 0x0F) + 1;
+                    
+                    if ((command & 0xF0) === 0x90 && velocity > 0) {
+                        log(`Note ON from ${input.name}: Note ${note}, Velocity ${velocity}, Channel ${channel}`, 'success');
+                    } else if ((command & 0xF0) === 0x80 || ((command & 0xF0) === 0x90 && velocity === 0)) {
+                        log(`Note OFF from ${input.name}: Note ${note}, Channel ${channel}`, 'warning');
+                    }
+                };
+            });
+        }
+
+        // Auto-start
+        window.onload = () => {
+            log('MIDI Diagnostic Tool loaded');
+            log('Click "Request MIDI Access" to begin');
+        };
+    </script>
+</body>
+</html> 

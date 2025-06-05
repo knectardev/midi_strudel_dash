@@ -30,6 +30,14 @@ class XYPad {
         this.rawX = 0; // 0-127 for MIDI CC compatibility
         this.rawY = 0; // 0-127 for MIDI CC compatibility
 
+        // Configuration for mouseover behavior (similar to VisualKeyboard)
+        this.mouseoverMode = 'always'; // 'always' = mouseover always triggers, 'drag' = only when dragging
+        this.isMousePressed = false; // Track if mouse is currently pressed down
+
+        // Throttling for Strudel note capture to prevent chord detection on rapid movements
+        this.lastStrudelCaptureTime = 0;
+        this.strudelCaptureThreshold = 50; // Minimum ms between Strudel note captures
+
         this._bindEvents();
         this.updateMusicalContext(); // Initial scale generation
     }
@@ -42,6 +50,26 @@ class XYPad {
     setStrudelCoder(strudelCoderInstance) {
         this.strudelCoder = strudelCoderInstance;
         console.log("XYPad: StrudelCoder instance received for note capture.");
+    }
+
+    // Method to change mouseover behavior
+    setMouseoverMode(mode) {
+        if (mode === 'always' || mode === 'drag') {
+            this.mouseoverMode = mode;
+            console.log('XYPad: mouseover mode set to:', mode);
+        } else {
+            console.warn('XYPad: Invalid mouseover mode. Use "always" or "drag"');
+        }
+    }
+
+    // Method to configure Strudel capture throttling
+    setStrudelCaptureThrottling(thresholdMs) {
+        if (typeof thresholdMs === 'number' && thresholdMs >= 0) {
+            this.strudelCaptureThreshold = thresholdMs;
+            console.log('XYPad: Strudel capture threshold set to:', thresholdMs, 'ms');
+        } else {
+            console.warn('XYPad: Invalid threshold. Use a number >= 0');
+        }
     }
 
     updateMusicalContext() {
@@ -74,8 +102,32 @@ class XYPad {
 
     _bindEvents() {
         this.padArea.addEventListener('mousedown', this._handleMouseDown.bind(this));
+        this.padArea.addEventListener('mouseover', this._handleMouseOver.bind(this));
+        this.padArea.addEventListener('mousemove', this._handleMouseMove.bind(this));
+        this.padArea.addEventListener('mouseleave', this._handleMouseLeave.bind(this));
         document.addEventListener('mousemove', this._handleMouseMove.bind(this));
         document.addEventListener('mouseup', this._handleMouseUp.bind(this));
+        
+        // Global mouse tracking for mouseover mode (similar to VisualKeyboard)
+        document.addEventListener('mousedown', (event) => {
+            if (event.button === 0) { // Only track left mouse button
+                this.isMousePressed = true;
+                // console.log('XYPad: global mousedown, isMousePressed:', this.isMousePressed);
+            }
+        });
+
+        document.addEventListener('mouseup', (event) => {
+            if (event.button === 0) { // Only track left mouse button
+                this.isMousePressed = false;
+                // console.log('XYPad: global mouseup, isMousePressed:', this.isMousePressed);
+            }
+        });
+
+        // Also handle mouse leave from document to reset state
+        document.addEventListener('mouseleave', () => {
+            this.isMousePressed = false;
+            // console.log('XYPad: document mouseleave, reset isMousePressed to false');
+        });
         
         // Touch events for mobile/tablet
         this.padArea.addEventListener('touchstart', this._handleTouchStart.bind(this), { passive: false });
@@ -107,7 +159,34 @@ class XYPad {
     }
 
     _handleMouseDown(event) {
+        this.isMousePressed = true;
+        // console.log('XYPad: mousedown, starting interaction');
         this._handleInteractionStart(event.clientX, event.clientY);
+    }
+
+    _handleMouseOver(event) {
+        // Check if any mouse button is currently pressed (more reliable than our tracking)
+        const isButtonPressed = (event.buttons & 1) === 1; // Check if left mouse button is pressed
+        console.log('XYPad: mouseover, event.buttons:', event.buttons, 'isButtonPressed:', isButtonPressed, 'this.isMousePressed:', this.isMousePressed, 'mode:', this.mouseoverMode);
+        
+        // Determine if we should trigger interaction based on mode
+        let shouldTrigger = false;
+        if (this.mouseoverMode === 'always') {
+            shouldTrigger = true; // Always trigger on mouseover
+        } else if (this.mouseoverMode === 'drag') {
+            shouldTrigger = isButtonPressed || this.isMousePressed; // Only trigger when dragging
+        }
+        
+        if (shouldTrigger) {
+            console.log('XYPad: triggering interaction on mouseover');
+            if (!this.isDragging) {
+                this.isDragging = true;
+            }
+            this._updatePositionAndNote(event.clientX, event.clientY);
+        } else if (isButtonPressed && !this.isDragging) {
+            // Legacy behavior: If mouse enters the pad area while dragging (from outside), start interaction
+            this._handleInteractionStart(event.clientX, event.clientY);
+        }
     }
 
     _handleMouseMove(event) {
@@ -115,6 +194,8 @@ class XYPad {
     }
 
     _handleMouseUp(event) {
+        this.isMousePressed = false; // Reset our tracking
+        // console.log('XYPad: mouseup, ending interaction');
         this._handleInteractionEnd();
     }
     
@@ -134,6 +215,19 @@ class XYPad {
 
     _handleTouchEnd(event) {
         this._handleInteractionEnd();
+    }
+
+    _handleMouseLeave(event) {
+        // console.log('XYPad: mouseleave, mode:', this.mouseoverMode, 'isDragging:', this.isDragging);
+        
+        if (this.mouseoverMode === 'always') {
+            // In 'always' mode, end interaction when leaving the pad
+            this._handleInteractionEnd();
+        } else {
+            // In 'drag' mode, don't end interaction on mouseleave - allow dragging outside the pad
+            // The interaction will continue and end on mouseup instead
+            // This allows for more fluid interaction when dragging outside and back in
+        }
     }
 
     _updatePositionAndNote(clientX, clientY) {
@@ -177,8 +271,13 @@ class XYPad {
 
             // Capture the note in Strudel Coder for code generation
             if (this.strudelCoder) {
-                this.strudelCoder.captureNote(currentMidiNote, velocity, 'XY Pad (Mouse)', 'xypad-mouse');
-                console.log(`XYPad: Note captured for Strudel: MIDI ${currentMidiNote}, Velocity: ${velocity}`);
+                const currentTime = Date.now();
+                // Only capture for Strudel if enough time has passed to prevent chord detection
+                if (currentTime - this.lastStrudelCaptureTime >= this.strudelCaptureThreshold) {
+                    this.strudelCoder.captureNote(currentMidiNote, velocity, 'XY Pad (Mouse)', 'xypad-mouse');
+                    this.lastStrudelCaptureTime = currentTime;
+                    console.log(`XYPad: Note captured for Strudel: MIDI ${currentMidiNote}, Velocity: ${velocity}`);
+                }
             }
             
             const noteName = this.mainController.getNoteName(currentMidiNote) || '--';
@@ -226,8 +325,13 @@ class XYPad {
 
                 // Capture the note in Strudel Coder for code generation
                 if (this.strudelCoder) {
-                    this.strudelCoder.captureNote(currentMidiNote, velocity, 'XY Pad (MIDI CC)', 'xypad-midi');
-                    console.log(`XYPad (MIDI): Note captured for Strudel: MIDI ${currentMidiNote}, Velocity: ${velocity}`);
+                    const currentTime = Date.now();
+                    // Only capture for Strudel if enough time has passed to prevent chord detection
+                    if (currentTime - this.lastStrudelCaptureTime >= this.strudelCaptureThreshold) {
+                        this.strudelCoder.captureNote(currentMidiNote, velocity, 'XY Pad (MIDI CC)', 'xypad-midi');
+                        this.lastStrudelCaptureTime = currentTime;
+                        console.log(`XYPad (MIDI): Note captured for Strudel: MIDI ${currentMidiNote}, Velocity: ${velocity}`);
+                    }
                 }
 
                  const noteName = this.mainController.getNoteName(currentMidiNote) || '--';

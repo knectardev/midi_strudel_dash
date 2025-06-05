@@ -191,6 +191,33 @@ Demo: https://midi-strudel-dash.vercel.app/
 - Comprehensive help and status information
 - Accessibility compliance and testing
 
+## New Features and Updates
+
+### Play and Stop Buttons
+- **Purpose**: Added play and stop buttons to control the playback of Strudel syntax.
+- **Implementation**: Integrated with the AudioEngine and StrudelCoder components to manage playback.
+
+### Updated AudioEngine
+- **Hard-coded Parameters**: Synth parameters such as waveform, attack time, decay time, sustain level, and release time are now hard-coded.
+- **Improved Initialization**: Enhanced error handling and context management.
+
+### Enhanced MIDI Integration
+- **Device Management**: Improved device detection and management with better logging and error handling.
+
+### Visual Keyboard Enhancements
+- **Interactive Feedback**: Real-time note highlighting and improved interaction with the XY Pad and Strudel Coder.
+
+### XY Pad Improvements
+- **Musical Context Updates**: Enhanced interaction handling and real-time updates for musical context changes.
+
+### Strudel Coder Enhancements
+- **Code Injection**: Improved real-time code injection and feedback mechanisms.
+- **Device Selection**: Enhanced device selection and management for MIDI input.
+
+### General Improvements
+- **UI Enhancements**: Improved layout and styling for better user experience.
+- **Error Handling**: Comprehensive error handling and logging across components.
+
 ## Future Enhancements
 
 ### Planned Features

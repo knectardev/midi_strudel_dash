@@ -62,16 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const globalTonicSelector = document.getElementById('globalTonicSelector');
     const globalScaleSelector = document.getElementById('globalScaleSelector');
 
-    // Synth Control Elements
-    const synthWaveformSelect = document.getElementById('synthWaveform');
-    const synthDecaySlider = document.getElementById('synthDecay');
-    const synthDecayValueDisplay = document.getElementById('synthDecayValue');
-    const synthSustainSlider = document.getElementById('synthSustain');
-    const synthSustainValueDisplay = document.getElementById('synthSustainValue');
-    const synthGainSlider = document.getElementById('synthGain');
-    const synthGainValueDisplay = document.getElementById('synthGainValue');
-    const synthCutoffSlider = document.getElementById('synthCutoff');
-    const synthCutoffValueDisplay = document.getElementById('synthCutoffValue');
+
 
     function populateGlobalSelectors() {
         // Populate Tonic Selector
@@ -109,14 +100,91 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add debug info for strudel integration
     setTimeout(() => {
+        inspectStrudelEditor();
+    }, 2000); // Give time for strudel-editor to initialize
+
+    /**
+     * Inspect the Strudel editor to understand its structure and available methods
+     */
+    function inspectStrudelEditor() {
         const strudelEditor = document.querySelector('strudel-editor');
         if (strudelEditor) {
             console.log("Strudel REPL integration detected:", strudelEditor);
-            console.log("Available methods:", Object.getOwnPropertyNames(strudelEditor).filter(name => typeof strudelEditor[name] === 'function'));
+            
+            // Log direct properties and methods
+            const directMethods = Object.getOwnPropertyNames(strudelEditor).filter(name => typeof strudelEditor[name] === 'function');
+            console.log("Direct methods:", directMethods);
+            
+            // Log prototype methods
+            const prototypeMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(strudelEditor)).filter(name => typeof strudelEditor[name] === 'function');
+            console.log("Prototype methods:", prototypeMethods);
+            
+            // Check for REPL instance
+            if (strudelEditor.repl) {
+                console.log("REPL instance found:", strudelEditor.repl);
+                const replMethods = Object.getOwnPropertyNames(strudelEditor.repl).filter(name => typeof strudelEditor.repl[name] === 'function');
+                console.log("REPL methods:", replMethods);
+            }
+            
+            // Check for editor instance
+            if (strudelEditor.editor) {
+                console.log("Editor instance found:", strudelEditor.editor);
+                const editorMethods = Object.getOwnPropertyNames(strudelEditor.editor).filter(name => typeof strudelEditor.editor[name] === 'function');
+                console.log("Editor methods:", editorMethods);
+            }
+            
+            // Check shadow DOM
+            if (strudelEditor.shadowRoot) {
+                console.log("Shadow DOM detected");
+                const playButtons = strudelEditor.shadowRoot.querySelectorAll('button');
+                console.log("Shadow DOM buttons:", playButtons);
+            }
+            
+            // Check for global Strudel functions
+            const globalStrudelFunctions = ['play', 'stop', 'hush', 'evaluate', 'start', 'run', 'begin', 'trigger', 'commence'].filter(name => typeof window[name] === 'function');
+            console.log("Global Strudel functions:", globalStrudelFunctions);
+            
+            // Check for any function that might be related to playback
+            const allGlobalFunctions = Object.getOwnPropertyNames(window).filter(name => {
+                try {
+                    return typeof window[name] === 'function' && 
+                           (name.toLowerCase().includes('play') || 
+                            name.toLowerCase().includes('start') || 
+                            name.toLowerCase().includes('run') || 
+                            name.toLowerCase().includes('eval'));
+                } catch (e) {
+                    return false;
+                }
+            });
+            console.log("All potential playback functions:", allGlobalFunctions);
+            
+            // Check for global repl object and its methods
+            if (window.repl) {
+                console.log("Global repl object found:", window.repl);
+                const replMethods = Object.getOwnPropertyNames(window.repl).filter(name => typeof window.repl[name] === 'function');
+                console.log("Global repl methods:", replMethods);
+                
+                // Also check prototype methods (with error handling for strict mode)
+                try {
+                    const replPrototypeMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(window.repl)).filter(name => {
+                        try {
+                            return typeof window.repl[name] === 'function';
+                        } catch (e) {
+                            return false; // Skip properties that can't be accessed in strict mode
+                        }
+                    });
+                    console.log("Global repl prototype methods:", replPrototypeMethods);
+                } catch (e) {
+                    console.log("Could not inspect repl prototype methods (strict mode limitation)");
+                }
+            } else {
+                console.log("No global repl object found");
+            }
+            
         } else {
             console.warn("Strudel REPL integration not found - make sure the @strudel/repl script has loaded");
         }
-    }, 2000); // Give time for strudel-editor to initialize
+    }
 
     // Add event listener for Copy Strudel Syntax button
     const copyStrudelSyntaxButton = document.getElementById('copyStrudelSyntax');
@@ -279,22 +347,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize MIDI Handler
     const midiHandler = new MidiHandler();
-    // midiHandler.setDebugMode(true); // Uncomment for verbose MIDI logging
+    midiHandler.setDebugMode(true); // Enable for debugging device detection
 
     const audioEngine = new AudioEngine(); // Instantiate AudioEngine
     mainController.audioEngine = audioEngine; // Make it available via mainController
-
-    // Initialize default synth param values from AudioEngine to UI (if needed, or ensure HTML defaults match)
-    if (audioEngine && synthWaveformSelect) synthWaveformSelect.value = audioEngine.waveform;
-    if (audioEngine && synthDecaySlider) synthDecaySlider.value = audioEngine.decayTime;
-    if (audioEngine && synthSustainSlider) synthSustainSlider.value = audioEngine.sustainLevel;
-    if (audioEngine && synthGainSlider) synthGainSlider.value = audioEngine.noteBaseGain;
-    if (audioEngine && synthCutoffSlider) synthCutoffSlider.value = audioEngine.filterCutoff;
-    // Update display spans initially
-    if(synthDecayValueDisplay && synthDecaySlider) synthDecayValueDisplay.textContent = `${synthDecaySlider.value}s`;
-    if(synthSustainValueDisplay && synthSustainSlider) synthSustainValueDisplay.textContent = synthSustainSlider.value;
-    if(synthGainValueDisplay && synthGainSlider) synthGainValueDisplay.textContent = synthGainSlider.value;
-    if(synthCutoffValueDisplay && synthCutoffSlider) synthCutoffValueDisplay.textContent = `${synthCutoffSlider.value}Hz`;
 
     // Add event listeners for global selectors
     if (globalTonicSelector) {
@@ -326,41 +382,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             // TODO: Notify other relevant components (e.g. CircularScale)
-        });
-    }
-
-    // Add event listeners for Synth Controls
-    if (synthWaveformSelect && audioEngine) {
-        synthWaveformSelect.addEventListener('change', (event) => {
-            audioEngine.setWaveform(event.target.value);
-        });
-    }
-    if (synthDecaySlider && audioEngine) {
-        synthDecaySlider.addEventListener('input', (event) => {
-            const value = parseFloat(event.target.value);
-            audioEngine.setDecay(value);
-            if (synthDecayValueDisplay) synthDecayValueDisplay.textContent = `${value.toFixed(2)}s`;
-        });
-    }
-    if (synthSustainSlider && audioEngine) {
-        synthSustainSlider.addEventListener('input', (event) => {
-            const value = parseFloat(event.target.value);
-            audioEngine.setSustainLevel(value);
-            if (synthSustainValueDisplay) synthSustainValueDisplay.textContent = value.toFixed(2);
-        });
-    }
-    if (synthGainSlider && audioEngine) {
-        synthGainSlider.addEventListener('input', (event) => {
-            const value = parseFloat(event.target.value);
-            audioEngine.setNoteGain(value);
-            if (synthGainValueDisplay) synthGainValueDisplay.textContent = value.toFixed(2);
-        });
-    }
-    if (synthCutoffSlider && audioEngine) {
-        synthCutoffSlider.addEventListener('input', (event) => {
-            const value = parseInt(event.target.value, 10);
-            audioEngine.setFilterCutoff(value);
-            if (synthCutoffValueDisplay) synthCutoffValueDisplay.textContent = `${value}Hz`;
         });
     }
 
@@ -407,6 +428,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (strudelCoderInstance && midiHandler.isAvailable()) {
                 strudelCoderInstance.updateAvailableDevices(midiHandler);
                 console.log("StrudelCoder updated with actual MIDI devices.");
+                
+                // Set up device list change callback to update StrudelCoder when devices connect/disconnect
+                midiHandler.setDeviceListChangeCallback(() => {
+                    console.log("MIDI device list changed, updating StrudelCoder...");
+                    strudelCoderInstance.updateAvailableDevices(midiHandler);
+                });
             } else {
                 console.warn("StrudelCoder or MidiHandler not available for device update.");
             }
@@ -469,10 +496,29 @@ document.addEventListener('DOMContentLoaded', () => {
         // Other global key listeners can be added here
     });
 
-    // --- Placeholder for future module initializations ---
-    // let audioEngine;
-    // let xyPad;
-    // let looper;
-    // let oscilloscope;
-    // console.log("Other modules to be initialized later.");
+    // Add event listeners for MIDI control buttons
+    const refreshMidiButton = document.getElementById('refreshMidiDevices');
+    const logMidiButton = document.getElementById('logMidiDevices');
+
+    if (refreshMidiButton) {
+        refreshMidiButton.addEventListener('click', async () => {
+            if (midiHandler && midiHandler.isAvailable()) {
+                console.log("Manual MIDI device refresh triggered");
+                await midiHandler.refreshDevices();
+            } else {
+                console.warn("MIDI handler not available for refresh");
+            }
+        });
+    }
+
+    if (logMidiButton) {
+        logMidiButton.addEventListener('click', () => {
+            if (midiHandler && midiHandler.isAvailable()) {
+                midiHandler.logDevices();
+            } else {
+                console.warn("MIDI handler not available for logging");
+            }
+        });
+    }
+
 }); 

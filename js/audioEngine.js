@@ -4,14 +4,14 @@ class AudioEngine {
         this.masterGain = null;
         this.isInitialized = false;
 
-        // Default synth parameters
-        this.waveform = 'sawtooth'; // 'sine', 'square', 'sawtooth', 'triangle'
+        // Hard-coded synth parameters (previously controlled by global controls)
+        this.waveform = 'sine'; // Hard-coded to sawtooth
         this.attackTime = 0.02;
-        this.decayTime = 0.32;   // Seconds
-        this.sustainLevel = 0.33; // Proportion of peak (0-1)
+        this.decayTime = 0.02;   // Hard-coded to 0.32 seconds
+        this.sustainLevel = 0.33; // Hard-coded to 0.33 (33%)
         this.releaseTime = 0.1;  // Seconds for the tail after note duration
-        this.noteBaseGain = 0.36; // Base gain for a note, velocity will modulate this
-        this.filterCutoff = 6469; // Hz
+        this.noteBaseGain = 0.36; // Hard-coded to 0.36 gain
+        this.filterCutoff = 1000; // Hard-coded to 6469 Hz
         this.filterType = 'lowpass';
 
         this.activeOscillators = {}; // To manage active notes for noteOff
@@ -59,36 +59,7 @@ class AudioEngine {
         return 440 * Math.pow(2, (midiNote - 69) / 12);
     }
 
-    // --- Synth Parameter Setters ---
-    setWaveform(type) {
-        if (['sine', 'square', 'sawtooth', 'triangle'].includes(type)) {
-            this.waveform = type;
-            console.log(`AudioEngine: Waveform set to ${type}`);
-        } else {
-            console.warn(`AudioEngine: Invalid waveform type - ${type}`);
-        }
-    }
-
-    setDecay(timeSeconds) {
-        this.decayTime = Math.max(0.01, parseFloat(timeSeconds)); // Ensure minimum decay
-        console.log(`AudioEngine: Decay set to ${this.decayTime}s`);
-    }
-
-    setSustainLevel(level) {
-        this.sustainLevel = Math.max(0, Math.min(1, parseFloat(level)));
-        console.log(`AudioEngine: Sustain level set to ${this.sustainLevel}`);
-    }
-
-    setNoteGain(gain) {
-        this.noteBaseGain = Math.max(0, Math.min(1, parseFloat(gain)));
-        console.log(`AudioEngine: Note base gain set to ${this.noteBaseGain}`);
-    }
-
-    setFilterCutoff(frequencyHz) {
-        this.filterCutoff = Math.max(20, Math.min(20000, parseFloat(frequencyHz)));
-        console.log(`AudioEngine: Filter cutoff set to ${this.filterCutoff}Hz`);
-    }
-    // --- End Synth Parameter Setters ---
+    // Note: Synth parameter setters removed since parameters are now hard-coded
 
     playSynthNote(midiNote, velocity, durationSeconds = 0.5) {
         if (!this.isInitialized || !this.audioContext) {
