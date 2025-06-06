@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - Strudelizer: Strudel syntax generator</title>
+    
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/favicon_io/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon_io/favicon-16x16.png">
+    <link rel="manifest" href="assets/favicon_io/site.webmanifest">
+    
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .about-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .feature-card {
+            background: var(--panel-bg, #2a2a2a);
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #444;
+        }
+        
+        .feature-card h3 {
+            color: #4CAF50;
+            margin-top: 0;
+        }
+        
+        .tech-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .tech-tag {
+            background: #3f51b5;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+        }
+        
+        .workflow-steps {
+            counter-reset: step-counter;
+            margin: 20px 0;
+        }
+        
+        .workflow-step {
+            counter-increment: step-counter;
+            position: relative;
+            padding-left: 40px;
+            margin-bottom: 15px;
+        }
+        
+        .workflow-step::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #ff69b4;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .highlight-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .code-example {
+            background: #1e1e1e;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .header-actions {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .header-actions a {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 0 10px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .primary-button {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .primary-button:hover {
+            background: #45a049;
+        }
+        
+        .secondary-button {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .secondary-button:hover {
+            background: #1976D2;
+        }
+        
+        .back-button {
+            background: #ff69b4;
+            color: white;
+        }
+        
+        .back-button:hover {
+            background: #e91e63;
+        }
+        
+        /* Better contrast for visited Strudel links */
+        a[href*="strudel.cc"]:visited {
+            color: #66BB6A !important;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>About Strudelizer</h1>
+        <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px;">
+            <a href="index.html" class="github-fork-button back-button">
+                <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16">
+                    <path fill="currentColor" d="M8.22 2.97a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 8 8.22 4.28a.75.75 0 0 1 0-1.06Z"></path>
+                    <path fill="currentColor" d="M3.75 8a.75.75 0 0 1 .75-.75h8a.75.75 0 0 1 0 1.5h-8A.75.75 0 0 1 3.75 8Z"></path>
+                </svg>
+                Back to App
+            </a>
+        </div>
+    </header>
+
+    <div class="about-container">
+       
+        <section>
+            <h2>🚀 What is Strudelizer?</h2>
+            <p>Strudelizer is a revolutionary web application that transforms musical input into <a href="https://strudel.cc" target="_blank" style="color: #4CAF50; text-decoration: underline;">Strudel</a> live coding syntax in real-time. Whether you're using a MIDI keyboard, the built-in visual interface, or mouse/touch input, Strudelizer captures your musical ideas and automatically generates beautiful, executable Strudel code.</p>
+            
+            <p>Built with modern web technologies including the Web Audio API and Web MIDI API, Strudelizer requires no plugins or downloads - just open it in your browser and start making music!</p>
+        </section>
+
+        <section>
+            <h2>🎹 Core Features</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>🎛️ Advanced XY Pad Controller</h3>
+                    <ul>
+                        <li><strong>17 Musical Scales</strong>: From Pentatonic to Chromatic, including Indian ragas</li>
+                        <li><strong>2D Musical Control</strong>: Express yourself with intuitive X/Y movement</li>
+                        <li><strong>Real-time Feedback</strong>: See note names, MIDI numbers, and frequencies</li>
+                        <li><strong>MIDI CC Support</strong>: Use hardware controllers (CC1/CC2)</li>
+                        <li><strong>Configurable Interaction</strong>: Choose between hover or drag modes</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h3>🎹 Interactive Visual Keyboard</h3>
+                    <ul>
+                        <li><strong>Multi-octave Display</strong>: Full chromatic keyboard interface</li>
+                        <li><strong>Smart Scale Highlighting</strong>: Visual cues for playable notes</li>
+                        <li><strong>MIDI Integration</strong>: Lights up when external MIDI notes are played</li>
+                        <li><strong>Touch/Mouse Support</strong>: Play with mouse or touch devices</li>
+                        <li><strong>Accessibility</strong>: ARIA labels and keyboard navigation</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h3>🔊 Professional Audio Engine</h3>
+                    <ul>
+                        <li><strong>Web Audio API</strong>: High-quality synthesis</li>
+                        <li><strong>ADSR Envelope</strong>: Professional sound shaping</li>
+                        <li><strong>Multiple Waveforms</strong>: Sine, sawtooth, square, triangle</li>
+                        <li><strong>Low-pass Filtering</strong>: Adjustable cutoff frequency</li>
+                        <li><strong>Velocity Sensitivity</strong>: Full 0-127 MIDI velocity range</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h3>🧠 Revolutionary Strudel MIDI Coder</h3>
+                    <ul>
+                        <li><strong>Smart Chord Recognition</strong>: Detects simultaneous notes automatically</li>
+                        <li><strong>Dual Notation</strong>: Musical (c4, d#4) or integer (MIDI numbers)</li>
+                        <li><strong>100+ Sounds</strong>: Extensive library with autocomplete search</li>
+                        <li><strong>Real-time Code Generation</strong>: Watch your music become code!</li>
+                        <li><strong>Manual BPM Control</strong>: Set your desired tempo with the BPM slider</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h3>🔗 Seamless Strudel Integration</h3>
+                    <ul>
+                        <li><strong>Automatic Code Injection</strong>: Real-time REPL updates</li>
+                        <li><strong>Copy to Clipboard</strong>: One-click code copying</li>
+                        <li><strong>Open in Strudel.cc</strong>: Direct link generation</li>
+                        <li><strong>Multiple Compatibility</strong>: Works with different Strudel versions</li>
+                        <li><strong>Visual Feedback</strong>: Clear notifications and error handling</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h3>🎛️ Comprehensive MIDI Support</h3>
+                    <ul>
+                        <li><strong>Universal Device Support</strong>: Auto-detects all MIDI devices</li>
+                        <li><strong>Hot-plug Support</strong>: Real-time device connection monitoring</li>
+                        <li><strong>Device Filtering</strong>: Choose specific devices for input</li>
+                        <li><strong>Multi-device Input</strong>: Simultaneous controller support</li>
+                        <li><strong>Advanced Processing</strong>: Velocity, CC, and timing capture</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+
+
+       
+
+        <section>
+            <h2>🚀 Getting Started</h2>
+            
+            <h3>Quick Start Workflow</h3>
+            <div class="workflow-steps">
+                <div class="workflow-step">
+                    <strong>Open the application</strong> in a modern web browser (Chrome recommended for best MIDI support)
+                </div>
+                <div class="workflow-step">
+                    <strong>Connect MIDI devices</strong> (optional) - devices will be auto-detected and shown in the dropdown
+                </div>
+                <div class="workflow-step">
+                    <strong>Select tonic and scale</strong> using the global controls to set your musical context
+                </div>
+                <div class="workflow-step">
+                    <strong>Choose your input method</strong>:
+                    <ul>
+                        <li>Visual Keyboard for traditional piano input</li>
+                        <li>XY Pad for expressive 2D control</li>
+                        <li>External MIDI controller for hardware input</li>
+                    </ul>
+                </div>
+                <div class="workflow-step">
+                    <strong>Play notes</strong> and watch real-time Strudel code generation in the REPL below
+                </div>
+                <div class="workflow-step">
+                    <strong>Copy or open</strong> generated code directly in Strudel.cc with one click
+                </div>
+            </div>
+
+            <h3>Advanced Usage Tips</h3>
+            <ul>
+                <li><strong>BPM Control</strong>: Adjust the BPM slider to set your desired tempo for the generated code</li>
+                <li><strong>Chord Input</strong>: Play multiple notes simultaneously (within 20ms) for automatic chord notation</li>
+                <li><strong>Device Selection</strong>: Choose specific MIDI devices in the Strudel Coder for focused input</li>
+                <li><strong>Sound Exploration</strong>: Use the autocomplete search to discover 100+ available sounds</li>
+                <li><strong>Notation Types</strong>: Switch between musical notation (c4, d#4) and integer notation (MIDI numbers)</li>
+            </ul>
+        </section>
+        
+
+        <section>
+            <h2>🌟 Future Roadmap</h2>
+            <p>Strudelizer is continuously evolving with exciting features planned:</p>
+            
+            <h3>Upcoming Features</h3>
+            <ul>
+                <li><strong>Advanced Pattern Recognition</strong>: Machine learning-based rhythm and melody analysis</li>
+                <li><strong>Loop Recording</strong>: Multi-layer loop recording with overdub capabilities</li>
+                <li><strong>MIDI File Export</strong>: Standard MIDI file generation from captured patterns</li>
+                <li><strong>Preset Management</strong>: Save and recall complete application states</li>
+                <li><strong>Advanced Visualization</strong>: Real-time waveform and spectrum analysis</li>
+            </ul>
+
+            <h3>UI/UX Enhancements</h3>
+            <ul>
+                <li><strong>Flexible Grid Looper</strong>: Rectangular loop interface with multiple time signatures</li>
+                <li><strong>Circular Pattern Sequencer</strong>: Variable angle/time signature with multi-ring sound placement</li>
+                <li><strong>Draggable Clips</strong>: Generated pattern clips that can be combined and arranged</li>
+                <li><strong>Advanced Routing</strong>: Complex signal routing between components</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>💬 Get Involved</h2>
+            <p>Strudelizer is an open-source project that welcomes contributions, feedback, and collaboration!</p>
+            
+            <div class="header-actions">
+                <a href="https://github.com/knectardev/midi_strudel_dash" target="_blank" class="primary-button">Contribute on GitHub</a>
+                <a href="mailto:chris.amato@knectar.com" target="_blank" class="back-button">Report Bugs</a>
+                <a href="https://strudel.cc" target="_blank" class="secondary-button">Learn Strudel</a>
+            </div>
+
+            <p style="text-align: center; margin-top: 30px; color: #888;">
+                <em>Strudelizer represents a bridge between traditional music performance and modern live coding, enabling new forms of creative expression through the seamless integration of MIDI input and Strudel's powerful pattern language.</em>
+            </p>
+        </section>
+    </div>
+
+    <footer style="text-align: center; padding: 20px; color: #888;">
+        <p>Built with ❤️ for the live coding community</p>
+    </footer>
+</body>
+</html> 

@@ -838,8 +838,9 @@ class StrudelCoder {
             feedbackElement.id = 'strudel-coder-feedback';
             feedbackElement.style.cssText = `
                 position: fixed;
-                top: 20px;
-                right: 20px;
+                top: 10px;
+                left: 50%;
+                transform: translateX(-50%);
                 padding: 10px 15px;
                 border-radius: 4px;
                 color: white;
