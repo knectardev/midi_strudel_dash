@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mic Frequency Band Visualizer</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #222;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+    canvas {
+      background: #111;
+      display: block;
+      margin: 20px auto;
+    }
+    .legend {
+      text-align: center;
+    }
+    .label {
+      display: inline-block;
+      margin: 0 10px;
+    }
+    .label span {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <h2>🎚️ Mic Frequency Band Visualizer</h2>
+  <p>Shows Bass / Mid / Treble intensity as a stacked bar graph.</p>
+
+  <canvas id="stackedBar" width="600" height="200"></canvas>
+
+  <div class="legend">
+    <div class="label"><span style="background:#00f"></span> Bass</div>
+    <div class="label"><span style="background:#0f0"></span> Mid</div>
+    <div class="label"><span style="background:#f00"></span> Treble</div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("stackedBar");
+    const ctx = canvas.getContext("2d");
+
+    async function start() {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioCtx.createMediaStreamSource(stream);
+
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      const bufferLength = analyser.frequencyBinCount;
+      const freqData = new Uint8Array(bufferLength);
+      source.connect(analyser);
+
+      // Frequency bin helper
+      const nyquist = audioCtx.sampleRate / 2;
+      const freqPerBin = nyquist / bufferLength;
+
+      function draw() {
+        requestAnimationFrame(draw);
+        analyser.getByteFrequencyData(freqData);
+
+        let bass = 0, mid = 0, treble = 0;
+        let bassCount = 0, midCount = 0, trebleCount = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+          const freq = i * freqPerBin;
+          const val = freqData[i];
+          if (freq < 250) {
+            bass += val; bassCount++;
+          } else if (freq < 4000) {
+            mid += val; midCount++;
+          } else {
+            treble += val; trebleCount++;
+          }
+        }
+
+        bass = bassCount ? bass / bassCount : 0;
+        mid = midCount ? mid / midCount : 0;
+        treble = trebleCount ? treble / trebleCount : 0;
+
+        const total = bass + mid + treble;
+        const scale = canvas.height / 255;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#00f";
+        ctx.fillRect(canvas.width / 2 - 50, canvas.height - bass * scale, 100, bass * scale);
+
+        ctx.fillStyle = "#0f0";
+        ctx.fillRect(canvas.width / 2 - 50, canvas.height - (bass + mid) * scale, 100, mid * scale);
+
+        ctx.fillStyle = "#f00";
+        ctx.fillRect(canvas.width / 2 - 50, canvas.height - (bass + mid + treble) * scale, 100, treble * scale);
+      }
+
+      draw();
+    }
+
+    start().catch(err => {
+      alert("Microphone access denied or unavailable.");
+      console.error(err);
+    });
+  </script>
+</body>
+</html>
