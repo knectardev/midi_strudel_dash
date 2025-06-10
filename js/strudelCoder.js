@@ -450,10 +450,8 @@ class StrudelCoder {
     }
 
     getNotation() {
-        const cpmLine = `setcpm(${this.bpm})`;
-        
         if (this.capturedNotes.length === 0) {
-            return `${cpmLine}\n//\n//\n//\n//`;
+            return ``;
         }
         
         const key = this.notationType === 'musical' ? 'name' : 'midi';
@@ -502,7 +500,7 @@ class StrudelCoder {
                 }
             }).join(' \n');
             
-            return `${cpmLine}\n//\nnote(\`${formattedChords}\`).sound("${transformedSound}")\n// \n//`;
+            return `note(\`${formattedChords}\`).sound("${transformedSound}")`;
             } else {
         // Original format for single chords or no chords
         // Check if the sequence is too long and needs line breaks
@@ -524,10 +522,10 @@ class StrudelCoder {
                 }
             }).join(' \n');
             
-            return `${cpmLine}\n//\nnote(\`${formattedChunks}\`).sound("${transformedSound}")\n// \n//`;
+            return `note(\`${formattedChunks}\`).sound("${transformedSound}")`;
         } else {
             // Short sequence, use original single-line format
-            return `${cpmLine}\n//\nnote("${seq.join(" ")}").sound("${transformedSound}")\n// \n//`;
+            return `note("${seq.join(" ")}").sound("${transformedSound}")`;
         }
     }
     }
